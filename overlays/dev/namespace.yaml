@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: integration-project-2026-groep-2-dev
+  labels:
+    environment: dev
+    managed-by: argocd

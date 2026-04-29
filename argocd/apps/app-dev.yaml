@@ -1,0 +1,35 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: integration-project-2026-groep-2-dev
+  namespace: argocd
+  labels:
+    environment: dev
+  # Cascade-delete all child resources when this Application is removed
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io/background
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/Integration-Project-2026-Groep-2/k8s-manifests
+    targetRevision: HEAD          # always track the latest commit on default branch
+    path: overlays/dev            # points at our dev Kustomize overlay
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: integration-project-2026-groep-2-dev    # ArgoCD will create this if it doesn't exist
+
+  syncPolicy:
+    automated:
+      prune: true      # remove resources that disappear from Git
+      selfHeal: true   # revert manual kubectl changes automatically
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

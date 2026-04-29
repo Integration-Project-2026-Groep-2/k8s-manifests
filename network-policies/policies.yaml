@@ -1,0 +1,283 @@
+# ─── DNS egress (all pods need this) ─────────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns-egress
+  namespace: integration-project-2026-groep-2
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+
+---
+# ─── RabbitMQ ─────────────────────────────────────────────────────────────────
+# Allow all app pods to reach RabbitMQ on AMQP (5672)
+# Allow ingress-nginx to reach RabbitMQ management (15672) for the UI
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: rabbitmq-ingress-policy
+  namespace: integration-project-2026-groep-2
+spec:
+  podSelector:
+    matchLabels:
+      app: rabbitmq
+  policyTypes:
+    - Ingress
+  ingress:
+    # AMQP from all team services
+    - from:
+        - podSelector:
+            matchLabels:
+              rabbitmq-client: "true"
+      ports:
+        - port: 5672
+    # Management UI from ingress controller
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - port: 15672
+
+---
+# ─── Elasticsearch ────────────────────────────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: elasticsearch-ingress-policy
+  namespace: integration-project-2026-groep-2
+spec:
+  podSelector:
+    matchLabels:
+      app: elasticsearch
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: kibana
+        - podSelector:
+            matchLabels:
+              app: controlroom
+      ports:
+        - port: 9200
+
+---
+# ─── Kibana ───────────────────────────────────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: kibana-ingress-policy
+  namespace: integration-project-2026-groep-2
+spec:
+  podSelector:
+    matchLabels:
+      app: kibana
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - port: 5601
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: elasticsearch
+      ports:
+        - port: 9200
+
+---
+# ─── Billing app → billing-db ─────────────────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: billing-db-ingress-policy
+  namespace: integration-project-2026-groep-2
+spec:
+  podSelector:
+    matchLabels:
+      app: billing-db
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: billing-app
+      ports:
+        - port: 3306
+
+---
+# ─── Mailing app → mailing-db ────────────────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mailing-db-ingress-policy
+  namespace: integration-project-2026-groep-2
+spec:
+  podSelector:
+    matchLabels:
+      app: mailing-db
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: mailing-app
+      ports:
+        - port: 3306
+
+---
+# ─── Kassa app → kassa-db ────────────────────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: kassa-db-ingress-policy
+  namespace: integration-project-2026-groep-2
+spec:
+  podSelector:
+    matchLabels:
+      app: kassa-db
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: kassa
+      ports:
+        - port: 5432
+
+---
+# ─── Frontend app → frontend-db ──────────────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: frontend-db-ingress-policy
+  namespace: integration-project-2026-groep-2
+spec:
+  podSelector:
+    matchLabels:
+      app: frontend-db
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: frontend-drupal
+      ports:
+        - port: 3306
+
+---
+# ─── Planning app → planning-db ──────────────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: planning-db-ingress-policy
+  namespace: integration-project-2026-groep-2
+spec:
+  podSelector:
+    matchLabels:
+      app: planning-db
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: planning
+      ports:
+        - port: 5432
+
+---
+# ─── Apps exposed through ingress ────────────────────────────────────────────
+# Allow ingress-nginx to reach frontend, kassa, billing, mailing, controlroom, planning
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-to-apps
+  namespace: integration-project-2026-groep-2
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app
+        operator: In
+        values:
+          - frontend-drupal
+          - billing-app
+          - mailing-app
+          - kassa
+          - controlroom
+          - planning
+          - crm
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+
+---
+# ─── App egress to RabbitMQ ───────────────────────────────────────────────────
+# Label pods that need RabbitMQ access with rabbitmq-client: "true"
+# in their deployment template labels (already set above where relevant)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-rabbitmq-egress
+  namespace: integration-project-2026-groep-2
+spec:
+  podSelector:
+    matchLabels:
+      rabbitmq-client: "true"
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: rabbitmq
+      ports:
+        - port: 5672
+
+---
+# ─── CRM egress to Salesforce (internet) ─────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: crm-egress-policy
+  namespace: integration-project-2026-groep-2
+spec:
+  podSelector:
+    matchLabels:
+      app: crm
+  policyTypes:
+    - Egress
+  egress:
+    # RabbitMQ
+    - to:
+        - podSelector:
+            matchLabels:
+              app: rabbitmq
+      ports:
+        - port: 5672
+    # Salesforce API (HTTPS to internet)
+    - ports:
+        - port: 443
+          protocol: TCP

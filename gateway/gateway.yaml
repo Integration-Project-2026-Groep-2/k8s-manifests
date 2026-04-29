@@ -1,0 +1,203 @@
+# Kubernetes Gateway API configuration
+# Replace 'yourdomain.com' with your actual domain
+#
+# Cloudflare setup:
+#   - DNS A record: *.yourdomain.com → your server IP
+#   - DNS A record: yourdomain.com → your server IP
+#   - Cloudflare proxy (orange cloud) enabled
+#   - Port redirect: 80/443 → server port 30098
+#   - SSL mode: Full (recommended) or Flexible
+#
+# Prerequisites: Gateway API CRDs and Gateway Controller (e.g., NGINX Gateway Controller)
+# Install with:
+#   helm install nginx-gateway nginx-gateway/nginx-gateway \
+#     --namespace nginx-gateway --create-namespace \
+#     -f ingress/gateway-controller-values.yaml
+
+---
+# ─── GatewayClass ─────────────────────────────────────────────────────────────
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: nginx
+spec:
+  controllerName: gateway.nginx.org/nginx-gateway-controller
+
+---
+# ─── Gateway (Single Entrypoint) ───────────────────────────────────────────────
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: main-gateway
+  namespace: integration-project-2026-groep-2
+spec:
+  gatewayClassName: nginx
+  listeners:
+    - name: http
+      port: 80
+      protocol: HTTP
+    - name: https
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: tls-secret
+            namespace: integration-project-2026-groep-2
+
+---
+# ─── HTTPRoute: Main website (Drupal) ──────────────────────────────────────────
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: HTTPRoute
+metadata:
+  name: frontend-route
+  namespace: integration-project-2026-groep-2
+spec:
+  parentRefs:
+    - name: main-gateway
+      sectionName: http
+  hostnames:
+    - yourdomain.com   # UPDATE
+    - www.yourdomain.com   # UPDATE
+  rules:
+    - backendRefs:
+        - name: frontend-drupal
+          port: 80
+
+---
+# ─── HTTPRoute: RabbitMQ Management UI ────────────────────────────────────────
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: HTTPRoute
+metadata:
+  name: rabbitmq-route
+  namespace: integration-project-2026-groep-2
+spec:
+  parentRefs:
+    - name: main-gateway
+      sectionName: http
+  hostnames:
+    - rabbitmq.yourdomain.com   # UPDATE
+  rules:
+    - backendRefs:
+        - name: rabbitmq
+          port: 15672
+
+---
+# ─── HTTPRoute: Kibana ────────────────────────────────────────────────────────
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: HTTPRoute
+metadata:
+  name: kibana-route
+  namespace: integration-project-2026-groep-2
+spec:
+  parentRefs:
+    - name: main-gateway
+      sectionName: http
+  hostnames:
+    - kibana.yourdomain.com   # UPDATE
+  rules:
+    - backendRefs:
+        - name: kibana
+          port: 5601
+
+---
+# ─── HTTPRoute: Billing / Facturatie ──────────────────────────────────────────
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: HTTPRoute
+metadata:
+  name: billing-route
+  namespace: integration-project-2026-groep-2
+  annotations:
+    nginx.gateway.networking.k8s.io/auth-type: basic
+    nginx.gateway.networking.k8s.io/auth-secret: htpasswd-facturatie
+    nginx.gateway.networking.k8s.io/auth-realm: "Facturatie Access"
+spec:
+  parentRefs:
+    - name: main-gateway
+      sectionName: http
+  hostnames:
+    - facturatie.yourdomain.com   # UPDATE
+  rules:
+    - backendRefs:
+        - name: billing-app
+          port: 80
+
+---
+# ─── HTTPRoute: Kassa ─────────────────────────────────────────────────────────
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: HTTPRoute
+metadata:
+  name: kassa-route
+  namespace: integration-project-2026-groep-2
+  annotations:
+    nginx.gateway.networking.k8s.io/auth-type: basic
+    nginx.gateway.networking.k8s.io/auth-secret: htpasswd-kassa
+    nginx.gateway.networking.k8s.io/auth-realm: "Kassa Access"
+spec:
+  parentRefs:
+    - name: main-gateway
+      sectionName: http
+  hostnames:
+    - kassa.yourdomain.com   # UPDATE
+  rules:
+    - backendRefs:
+        - name: kassa
+          port: 80
+
+---
+# ─── HTTPRoute: Mailing ───────────────────────────────────────────────────────
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: HTTPRoute
+metadata:
+  name: mailing-route
+  namespace: integration-project-2026-groep-2
+  annotations:
+    nginx.gateway.networking.k8s.io/auth-type: basic
+    nginx.gateway.networking.k8s.io/auth-secret: htpasswd-mailing
+    nginx.gateway.networking.k8s.io/auth-realm: "Mailing Access"
+spec:
+  parentRefs:
+    - name: main-gateway
+      sectionName: http
+  hostnames:
+    - mailing.yourdomain.com   # UPDATE
+  rules:
+    - backendRefs:
+        - name: mailing-app
+          port: 80
+
+---
+# ─── HTTPRoute: Control Room ──────────────────────────────────────────────────
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: HTTPRoute
+metadata:
+  name: controlroom-route
+  namespace: integration-project-2026-groep-2
+spec:
+  parentRefs:
+    - name: main-gateway
+      sectionName: http
+  hostnames:
+    - controlroom.yourdomain.com   # UPDATE
+  rules:
+    - backendRefs:
+        - name: controlroom
+          port: 80
+
+---
+# ─── HTTPRoute: Planning ──────────────────────────────────────────────────────
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: HTTPRoute
+metadata:
+  name: planning-route
+  namespace: integration-project-2026-groep-2
+spec:
+  parentRefs:
+    - name: main-gateway
+      sectionName: http
+  hostnames:
+    - planning.yourdomain.com   # UPDATE
+  rules:
+    - backendRefs:
+        - name: planning
+          port: 80

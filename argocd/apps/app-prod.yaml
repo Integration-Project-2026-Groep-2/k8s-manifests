@@ -1,0 +1,34 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: integration-project-2026-groep-2-prod
+  namespace: argocd
+  labels:
+    environment: prod
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io/background
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/Integration-Project-2026-Groep-2/k8s-manifests
+    targetRevision: HEAD          # pin this to a release tag once you have a release workflow
+    path: overlays/prod           # points at our prod Kustomize overlay
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: integration-project-2026-groep-2-prod
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

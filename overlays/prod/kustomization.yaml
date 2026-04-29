@@ -1,0 +1,64 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# ── Base ─────────────────────────────────────────────────────────────────────
+resources:
+  - ../../          # root kustomization (apps, gateway, infrastructure, …)
+  - namespace.yaml  # prod-specific namespace
+
+# ── Namespace override ────────────────────────────────────────────────────────
+namespace: integration-project-2026-groep-2-prod
+
+# ── Common labels / annotations ───────────────────────────────────────────────
+commonLabels:
+  environment: prod
+
+commonAnnotations:
+  environment: prod
+  managed-by: argocd
+
+# ── Image tags ────────────────────────────────────────────────────────────────
+# Pin every service to a specific stable tag in prod.
+# Add one entry per service; never use "latest" in production.
+#
+# images:
+#   - name: ghcr.io/integration-project-2026-groep-2/my-service
+#     newTag: "1.2.3"
+
+# ── Patches ───────────────────────────────────────────────────────────────────
+patches:
+  # Run at least 2 replicas for HA in prod
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 2
+    target:
+      kind: Deployment
+
+  # Tighter resource requests/limits for predictable scheduling in prod
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "1000m"
+            memory: "512Mi"
+    target:
+      kind: Deployment
+
+  # Enable pod disruption budget awareness: prefer spreading across nodes
+  - patch: |-
+      - op: add
+        path: /spec/template/spec/topologySpreadConstraints
+        value:
+          - maxSkew: 1
+            topologyKey: kubernetes.io/hostname
+            whenUnsatisfiable: ScheduleAnyway
+            labelSelector:
+              matchLabels:
+                environment: prod
+    target:
+      kind: Deployment

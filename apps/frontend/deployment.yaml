@@ -1,0 +1,235 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: frontend-db
+  namespace: integration-project-2026-groep-2
+  labels:
+    app: frontend-db
+spec:
+  serviceName: frontend-db
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend-db
+  template:
+    metadata:
+      labels:
+        rabbitmq-client: "true"
+        app: frontend-db
+    spec:
+      securityContext:
+        runAsUser: 999
+        fsGroup: 999
+      containers:
+        - name: frontend-db
+          image: mariadb:12
+          ports:
+            - containerPort: 3306
+          env:
+            - name: MARIADB_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: frontend-secret
+                  key: FRONTEND_DB_NAME
+            - name: MARIADB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: frontend-secret
+                  key: FRONTEND_DB_USER
+            - name: MARIADB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: frontend-secret
+                  key: FRONTEND_DB_PASS
+            - name: MARIADB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: frontend-secret
+                  key: FRONTEND_DB_ROOT_PASS
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          readinessProbe:
+            exec:
+              command: ["healthcheck.sh", "--connect", "--innodb_initialized"]
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            exec:
+              command: ["healthcheck.sh", "--connect"]
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          volumeMounts:
+            - name: frontend-db-data
+              mountPath: /var/lib/mysql
+  volumeClaimTemplates:
+    - metadata:
+        name: frontend-db-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 10Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-db
+  namespace: integration-project-2026-groep-2
+  labels:
+    app: frontend-db
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    app: frontend-db
+  ports:
+    - port: 3306
+      targetPort: 3306
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-drupal
+  namespace: integration-project-2026-groep-2
+  labels:
+    app: frontend-drupal
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend-drupal
+  template:
+    metadata:
+      labels:
+        app: frontend-drupal
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 33   # www-data
+        fsGroup: 33
+      containers:
+        - name: frontend-drupal
+          image: ghcr.io/integration-project-2026-groep-2/frontend:latest-dev
+          ports:
+            - containerPort: 80
+          env:
+            - name: DRUPAL_DB_HOST
+              value: frontend-db
+            - name: DRUPAL_DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: frontend-secret
+                  key: FRONTEND_DB_NAME
+            - name: DRUPAL_DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: frontend-secret
+                  key: FRONTEND_DB_USER
+            - name: DRUPAL_DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: frontend-secret
+                  key: FRONTEND_DB_PASS
+            - name: RABBITMQ_HOST
+              value: rabbitmq
+            - name: RABBITMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: RABBITMQ_USER
+            - name: RABBITMQ_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: RABBITMQ_PASS
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 40
+            periodSeconds: 30
+          volumeMounts:
+            - name: drupal-profiles
+              mountPath: /var/www/html/profiles
+            - name: drupal-themes
+              mountPath: /var/www/html/themes
+            - name: drupal-sites
+              mountPath: /var/www/html/sites
+      volumes:
+        - name: drupal-profiles
+          persistentVolumeClaim:
+            claimName: drupal-profiles
+        - name: drupal-themes
+          persistentVolumeClaim:
+            claimName: drupal-themes
+        - name: drupal-sites
+          persistentVolumeClaim:
+            claimName: drupal-sites
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: drupal-profiles
+  namespace: integration-project-2026-groep-2
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: drupal-themes
+  namespace: integration-project-2026-groep-2
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: drupal-sites
+  namespace: integration-project-2026-groep-2
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-drupal
+  namespace: integration-project-2026-groep-2
+  labels:
+    app: frontend-drupal
+spec:
+  type: ClusterIP
+  selector:
+    app: frontend-drupal
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80

@@ -1,0 +1,50 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# ── Base ─────────────────────────────────────────────────────────────────────
+resources:
+  - ../../          # root kustomization (apps, gateway, infrastructure, …)
+  - namespace.yaml  # dev-specific namespace
+
+# ── Namespace override ────────────────────────────────────────────────────────
+namespace: integration-project-2026-groep-2-dev
+
+# ── Common labels / annotations ───────────────────────────────────────────────
+commonLabels:
+  environment: dev
+
+commonAnnotations:
+  environment: dev
+  managed-by: argocd
+
+# ── Image tags ────────────────────────────────────────────────────────────────
+# Replace "latest" with "dev" on every image in the base.
+# Add one entry per service once you know the exact image name.
+#
+# images:
+#   - name: ghcr.io/integration-project-2026-groep-2/my-service
+#     newTag: dev
+
+# ── Patches ───────────────────────────────────────────────────────────────────
+patches:
+  # Scale every Deployment down to 1 replica in dev
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+    target:
+      kind: Deployment
+
+  # Relax resource limits in dev so the cluster isn't starved
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            cpu: "50m"
+            memory: "64Mi"
+          limits:
+            cpu: "500m"
+            memory: "256Mi"
+    target:
+      kind: Deployment

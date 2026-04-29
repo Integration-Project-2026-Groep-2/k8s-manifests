@@ -1,0 +1,182 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: billing-app
+  namespace: integration-project-2026-groep-2
+  labels:
+    app: billing-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: billing-app
+  template:
+    metadata:
+      labels:
+        rabbitmq-client: "true"
+        app: billing-app
+    spec:
+      securityContext: {}
+      containers:
+        - name: billing-app
+          image: ghcr.io/integration-project-2026-groep-2/facturatie:latest-dev
+          ports:
+            - containerPort: 8080   # UPDATE to actual port
+          env:
+            - name: DB_HOST
+              value: billing-db
+            - name: RABBITMQ_HOST
+              value: rabbitmq
+            - name: RABBITMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: RABBITMQ_USER
+            - name: RABBITMQ_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: RABBITMQ_PASS
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: billing-secret
+                  key: BILLING_DB_NAME
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: billing-secret
+                  key: BILLING_DB_USER
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: billing-secret
+                  key: BILLING_DB_PASS
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          readinessProbe:
+            httpGet:
+              path: /health   # UPDATE to actual health endpoint
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: billing-app
+  namespace: integration-project-2026-groep-2
+  labels:
+    app: billing-app
+spec:
+  type: ClusterIP
+  selector:
+    app: billing-app
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080   # UPDATE to actual port
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: billing-db
+  namespace: integration-project-2026-groep-2
+  labels:
+    app: billing-db
+spec:
+  serviceName: billing-db
+  replicas: 1
+  selector:
+    matchLabels:
+      app: billing-db
+  template:
+    metadata:
+      labels:
+        app: billing-db
+    spec:
+      securityContext:
+        runAsUser: 999
+        fsGroup: 999
+      containers:
+        - name: billing-db
+          image: mariadb:11.8
+          ports:
+            - containerPort: 3306
+          env:
+            - name: MARIADB_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: billing-secret
+                  key: BILLING_DB_NAME
+            - name: MARIADB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: billing-secret
+                  key: BILLING_DB_USER
+            - name: MARIADB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: billing-secret
+                  key: BILLING_DB_PASS
+            - name: MARIADB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: billing-secret
+                  key: BILLING_DB_ROOT_PASS
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          readinessProbe:
+            exec:
+              command: ["healthcheck.sh", "--connect", "--innodb_initialized"]
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            exec:
+              command: ["healthcheck.sh", "--connect"]
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          volumeMounts:
+            - name: billing-db-data
+              mountPath: /var/lib/mysql
+  volumeClaimTemplates:
+    - metadata:
+        name: billing-db-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 10Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: billing-db
+  namespace: integration-project-2026-groep-2
+  labels:
+    app: billing-db
+spec:
+  type: ClusterIP
+  clusterIP: None   # Headless for StatefulSet DNS
+  selector:
+    app: billing-db
+  ports:
+    - port: 3306
+      targetPort: 3306

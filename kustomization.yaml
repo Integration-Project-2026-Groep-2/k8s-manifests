@@ -1,0 +1,58 @@
+# Kustomize base configuration for the integration platform
+# This orchestrates all manifests for Argo CD
+
+namespace: integration-project-2026-groep-2
+
+# Include all manifest files and directories
+resources:
+  - namespace.yaml
+  - infrastructure/elasticsearch/service.yaml
+  - infrastructure/elasticsearch/statefulset.yaml
+  - infrastructure/kibana/deployment.yaml
+  - infrastructure/kibana/service.yaml
+  - infrastructure/rabbitmq/service.yaml
+  - infrastructure/rabbitmq/statefulset.yaml
+  - apps/billing/deployment.yaml
+  - apps/controlroom/deployment.yaml
+  - apps/crm/deployment.yaml
+  - apps/frontend/deployment.yaml
+  - apps/kassa/deployment.yaml
+  - apps/mailing/deployment.yaml
+  - apps/planning/deployment.yaml
+  - gateway/gateway.yaml
+  - network-policies/default-deny.yaml
+  - network-policies/policies.yaml
+
+# Secrets are loaded locally via secretGenerator from .env files
+# See secrets/README.md for setup instructions
+secretGenerator:
+  - name: billing-secret
+    envs:
+      - secrets/.env.billing
+  - name: controlroom-secret
+    envs:
+      - secrets/.env.controlroom
+  - name: crm-secret
+    envs:
+      - secrets/.env.crm
+  - name: elasticsearch-secret
+    envs:
+      - secrets/.env.elasticsearch
+  - name: frontend-secret
+    envs:
+      - secrets/.env.frontend
+  - name: ingress-basic-auth-secrets
+    envs:
+      - secrets/.env.ingress
+  - name: kassa-secret
+    envs:
+      - secrets/.env.kassa
+  - name: mailing-secret
+    envs:
+      - secrets/.env.mailing
+  - name: planning-secret
+    envs:
+      - secrets/.env.planning
+  - name: rabbitmq-secret
+    envs:
+      - secrets/.env.rabbitmq

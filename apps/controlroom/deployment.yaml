@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: controlroom
+  namespace: integration-project-2026-groep-2
+  labels:
+    app: controlroom
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: controlroom
+  template:
+    metadata:
+      labels:
+        rabbitmq-client: "true"
+        app: controlroom
+    spec:
+      securityContext: {}
+      containers:
+        - name: controlroom
+          image: ghcr.io/integration-project-2026-groep-2/controlroom:latest-dev
+          ports:
+            - containerPort: 8080  # UPDATE to actual port if different
+          env:
+            - name: RABBITMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: RABBITMQ_USER
+            - name: RABBITMQ_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: RABBITMQ_PASS
+            - name: RABBITMQ_VHOST
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: RABBITMQ_VHOST
+            - name: RABBITMQ_URL
+              value: "amqp://$(RABBITMQ_USER):$(RABBITMQ_PASS)@rabbitmq:5672/"
+            - name: RABBITMQ_HOST
+              value: rabbitmq
+            - name: ELASTICSEARCH_URL
+              value: "http://elasticsearch:9200"
+            - name: CONTROLROOM_ES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: elasticsearch-secret
+                  key: CONTROLROOM_ES_USER
+            - name: CONTROLROOM_ES_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: elasticsearch-secret
+                  key: CONTROLROOM_ES_PASS
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          readinessProbe:
+            httpGet:
+              path: /health   # UPDATE to actual health endpoint
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: controlroom
+  namespace: integration-project-2026-groep-2
+  labels:
+    app: controlroom
+spec:
+  type: ClusterIP
+  selector:
+    app: controlroom
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080   # UPDATE to actual port if different

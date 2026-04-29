@@ -1,0 +1,256 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: kassa-db
+  namespace: integration-project-2026-groep-2
+  labels:
+    app: kassa-db
+spec:
+  serviceName: kassa-db
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kassa-db
+  template:
+    metadata:
+      labels:
+        rabbitmq-client: "true"
+        app: kassa-db
+    spec:
+      securityContext:
+        runAsUser: 999
+        fsGroup: 999
+      containers:
+        - name: kassa-db
+          image: postgres:18-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: kassa-secret
+                  key: KASSA_DB_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: kassa-secret
+                  key: KASSA_DB_PASSWORD
+            - name: POSTGRES_DB
+              value: kassa_db
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - |
+                  pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - |
+                  pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          volumeMounts:
+            - name: kassa-db-data
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: kassa-db-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 10Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kassa-db
+  namespace: integration-project-2026-groep-2
+  labels:
+    app: kassa-db
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    app: kassa-db
+  ports:
+    - port: 5432
+      targetPort: 5432
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kassa
+  namespace: integration-project-2026-groep-2
+  labels:
+    app: kassa
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kassa
+  template:
+    metadata:
+      labels:
+        app: kassa
+    spec:
+      securityContext: {}
+      containers:
+        - name: kassa
+          image: ghcr.io/integration-project-2026-groep-2/kassa:latest-dev
+          ports:
+            - containerPort: 8069
+          env:
+            - name: SYSTEM_NAME
+              value: Kassa
+            - name: ODOO_PORT
+              value: "8069"
+            - name: ODOO_URL
+              valueFrom:
+                secretKeyRef:
+                  name: kassa-secret
+                  key: ODOO_URL
+            - name: ODOO_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: kassa-secret
+                  key: ODOO_DB
+            - name: ODOO_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: kassa-secret
+                  key: ODOO_USERNAME
+            - name: ODOO_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: kassa-secret
+                  key: ODOO_PASSWORD
+            # DB connection
+            - name: HOST
+              value: kassa-db
+            - name: DB_HOST
+              value: kassa-db
+            - name: DB_PORT
+              value: "5432"
+            - name: POSTGRES_DB
+              value: kassa_db
+            - name: USER
+              valueFrom:
+                secretKeyRef:
+                  name: kassa-secret
+                  key: KASSA_DB_USER
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: kassa-secret
+                  key: KASSA_DB_USER
+            - name: PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: kassa-secret
+                  key: KASSA_DB_PASSWORD
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: kassa-secret
+                  key: KASSA_DB_PASSWORD
+            # RabbitMQ
+            - name: RABBIT_HOST
+              value: rabbitmq
+            - name: RABBIT_PORT
+              value: "5672"
+            - name: RABBIT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: RABBITMQ_USER
+            - name: RABBIT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: RABBITMQ_PASS
+            - name: RABBIT_VHOST
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: RABBITMQ_VHOST
+            - name: HEARTBEAT_INTERVAL_SECONDS
+              value: "1"
+            - name: HEARTBEAT_EXCHANGE
+              value: "heartbeat.direct"
+            - name: HEARTBEAT_ROUTING_KEY
+              value: "routing.heartbeat"
+            - name: STATUS_CHECK_INTERVAL
+              value: "30"
+            - name: LOG_LEVEL
+              value: INFO
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+          readinessProbe:
+            httpGet:
+              path: /web/health
+              port: 8069
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /web/health
+              port: 8069
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+          volumeMounts:
+            - name: odoo-data
+              mountPath: /var/lib/odoo
+      volumes:
+        - name: odoo-data
+          persistentVolumeClaim:
+            claimName: kassa-odoo-data
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: kassa-odoo-data
+  namespace: integration-project-2026-groep-2
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kassa
+  namespace: integration-project-2026-groep-2
+  labels:
+    app: kassa
+spec:
+  type: ClusterIP
+  selector:
+    app: kassa
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8069
