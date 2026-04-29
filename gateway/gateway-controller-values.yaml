@@ -1,0 +1,54 @@
+# NGINX Gateway Fabric Helm Chart Values
+# Exposes the gateway service on port 30097 (NodePort)
+
+replicaCount: 2
+
+service:
+  type: NodePort
+  ports:
+    - port: 80
+      targetPort: 8080
+      protocol: TCP
+      name: http
+      nodePort: 30097
+    - port: 443
+      targetPort: 8443
+      protocol: TCP
+      name: https
+      nodePort: 30098
+
+nginx:
+  config:
+    http:
+      server_tokens: "off"
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "10254"
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - nginx-gateway
+          topologyKey: kubernetes.io/hostname

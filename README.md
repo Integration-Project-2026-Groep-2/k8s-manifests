@@ -10,6 +10,7 @@ It is set up for GitOps with Argo CD and uses Kustomize overlays for dev and pro
 
 ```text
 .
+├── base/               Shared Kustomize base for workloads, gateway class, and policies
 ├── argocd/              Argo CD App-of-Apps and child Applications
 ├── apps/                Team services and their deployments
 ├── gateway/             NGINX Gateway Fabric and Gateway API config
@@ -21,7 +22,9 @@ It is set up for GitOps with Argo CD and uses Kustomize overlays for dev and pro
 
 ## Current setup
 
-The root [kustomization.yaml](kustomization.yaml) includes the shared namespace, all workloads, gateway config, network policies, and the committed SealedSecrets resources. Plaintext Secret manifests are no longer part of the bootstrap path.
+The shared platform resources live in [base/kustomization.yaml](base/kustomization.yaml). It includes the shared namespace, workloads, gateway class, Headlamp, network policies, and the committed SealedSecrets resources. The [overlays/dev/kustomization.yaml](overlays/dev/kustomization.yaml) and [overlays/prod/kustomization.yaml](overlays/prod/kustomization.yaml) layers add the environment-specific gateway, namespace, labels, and resource tuning.
+
+Plaintext Secret manifests are no longer part of the bootstrap path.
 
 The Argo CD App-of-Apps entry point is [argocd/app-of-apps.yaml](argocd/app-of-apps.yaml). It points at [argocd/apps](argocd/apps), where the dev and prod Applications live:
 
@@ -34,7 +37,8 @@ The Argo CD App-of-Apps entry point is [argocd/app-of-apps.yaml](argocd/app-of-a
 2. Install NGINX Gateway Fabric using [gateway/gateway-controller-values.yaml](gateway/gateway-controller-values.yaml).
 3. Install Argo CD.
 4. Install the Sealed Secrets controller.
-5. Optionally install Headlamp for cluster visibility.
+5. Create the Cloudflare Origin Certificate Secret in both environment namespaces.
+6. Optionally install Headlamp for cluster visibility.
 
 Example commands:
 
@@ -51,6 +55,8 @@ kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/st
 helm repo add sealed-secrets https://bitnami-labs.github.io/sealed-secrets
 helm install sealed-secrets sealed-secrets/sealed-secrets -n kube-system
 ```
+
+The Cloudflare Origin Certificate is mounted as `cloudflare-origin-cert` in both `integration-project-2026-groep-2-dev` and `integration-project-2026-groep-2-prod`.
 
 ## Deployment
 
@@ -78,6 +84,13 @@ The overlays are:
 - [overlays/dev/kustomization.yaml](overlays/dev/kustomization.yaml) for the development namespace and lighter resource settings.
 - [overlays/prod/kustomization.yaml](overlays/prod/kustomization.yaml) for the production namespace and higher availability settings.
 
+Gateway hostnames:
+
+- Dev Headlamp: `dev-headlamp.integration-project-2026-groep-2.my.be`
+- Prod Headlamp: `headlamp.integration-project-2026-groep-2.my.be`
+- Prod app hosts: `integration-project-2026-groep-2.my.be`, `www.integration-project-2026-groep-2.my.be`, `facturatie.integration-project-2026-groep-2.my.be`, `kassa.integration-project-2026-groep-2.my.be`, `mailing.integration-project-2026-groep-2.my.be`, `rabbitmq.integration-project-2026-groep-2.my.be`
+- Dev app hosts use the matching `dev-*` prefixes
+
 ## Secrets
 
 Secrets are stored as SealedSecrets under [secrets](secrets). Commit the sealed manifests, not plaintext Secret objects. If you need to rotate a secret, regenerate the SealedSecret and replace the matching file in this directory.
@@ -86,7 +99,9 @@ The companion notes are in [secrets/README.md](secrets/README.md).
 
 ## Networking
 
-The gateway controller exposes a single NodePort entrypoint for inbound traffic. Current configuration uses port 30097 and trusts Cloudflare proxy headers through the Gateway controller values file.
+The gateway controller exposes the entrypoint on NodePort 30097. Cloudflare routes inbound web traffic to that port, and the Gateways terminate TLS using the Cloudflare Origin Certificate.
+
+Headlamp is deployed separately per environment and routed through the same gateway layer as the applications.
 
 ## Notes
 

@@ -4,6 +4,7 @@ kind: Kustomization
 # ── Base ─────────────────────────────────────────────────────────────────────
 resources:
   - ../../base          # root kustomization (apps, gateway, infrastructure, …)
+  - gateway/gateway.yaml  # dev-specific gateway and routes
 
 # ── Namespace override ────────────────────────────────────────────────────────
 namespace: integration-project-2026-groep-2-dev

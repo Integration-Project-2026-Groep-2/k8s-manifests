@@ -225,6 +225,7 @@ spec:
           - controlroom
           - planning
           - crm
+          - headlamp
   policyTypes:
     - Ingress
   ingress:
@@ -232,6 +233,24 @@ spec:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: ingress-nginx
+
+---
+# ─── Headlamp egress to Kubernetes API ───────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-headlamp-egress
+  namespace: integration-project-2026-groep-2
+spec:
+  podSelector:
+    matchLabels:
+      app: headlamp
+  policyTypes:
+    - Egress
+  egress:
+    - ports:
+        - port: 443
+          protocol: TCP
 
 ---
 # ─── App egress to RabbitMQ ───────────────────────────────────────────────────

@@ -1,0 +1,186 @@
+# Kubernetes Gateway API - Production Environment
+# Prod-specific Gateway and HTTPRoutes with prod domain routing
+
+---
+# ── Gateway (Prod Entrypoint - HTTPS only with Cloudflare Origin Cert) ──────
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: prod-gateway
+spec:
+  gatewayClassName: nginx
+  listeners:
+    - name: https
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: cloudflare-origin-cert
+            kind: Secret
+
+---
+# ─── HTTPRoute: Main website (Drupal) ──────────────────────────────────────────
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: HTTPRoute
+metadata:
+  name: frontend-route
+spec:
+  parentRefs:
+    - name: prod-gateway
+      sectionName: https
+  hostnames:
+    - integration-project-2026-groep-2.my.be
+    - www.integration-project-2026-groep-2.my.be
+  rules:
+    - backendRefs:
+        - name: frontend-drupal
+          port: 80
+
+---
+# ─── HTTPRoute: RabbitMQ Management UI ────────────────────────────────────────
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: HTTPRoute
+metadata:
+  name: rabbitmq-route
+spec:
+  parentRefs:
+    - name: prod-gateway
+      sectionName: https
+  hostnames:
+    - rabbitmq.integration-project-2026-groep-2.my.be
+  rules:
+    - backendRefs:
+        - name: rabbitmq
+          port: 15672
+
+---
+# ─── HTTPRoute: Kibana ────────────────────────────────────────────────────────
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: HTTPRoute
+metadata:
+  name: kibana-route
+spec:
+  parentRefs:
+    - name: prod-gateway
+      sectionName: https
+  hostnames:
+    - kibana.integration-project-2026-groep-2.my.be
+  rules:
+    - backendRefs:
+        - name: kibana
+          port: 5601
+
+---
+# ─── HTTPRoute: Billing / Facturatie ──────────────────────────────────────────
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: HTTPRoute
+metadata:
+  name: billing-route
+  annotations:
+    nginx.gateway.networking.k8s.io/auth-type: basic
+    nginx.gateway.networking.k8s.io/auth-secret: htpasswd-facturatie
+    nginx.gateway.networking.k8s.io/auth-realm: "Facturatie Access"
+spec:
+  parentRefs:
+    - name: prod-gateway
+      sectionName: https
+  hostnames:
+    - facturatie.integration-project-2026-groep-2.my.be
+  rules:
+    - backendRefs:
+        - name: billing-app
+          port: 80
+
+---
+# ─── HTTPRoute: Kassa ─────────────────────────────────────────────────────────
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: HTTPRoute
+metadata:
+  name: kassa-route
+  annotations:
+    nginx.gateway.networking.k8s.io/auth-type: basic
+    nginx.gateway.networking.k8s.io/auth-secret: htpasswd-kassa
+    nginx.gateway.networking.k8s.io/auth-realm: "Kassa Access"
+spec:
+  parentRefs:
+    - name: prod-gateway
+      sectionName: https
+  hostnames:
+    - kassa.integration-project-2026-groep-2.my.be
+  rules:
+    - backendRefs:
+        - name: kassa
+          port: 80
+
+---
+# ─── HTTPRoute: Mailing ───────────────────────────────────────────────────────
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: HTTPRoute
+metadata:
+  name: mailing-route
+  annotations:
+    nginx.gateway.networking.k8s.io/auth-type: basic
+    nginx.gateway.networking.k8s.io/auth-secret: htpasswd-mailing
+    nginx.gateway.networking.k8s.io/auth-realm: "Mailing Access"
+spec:
+  parentRefs:
+    - name: prod-gateway
+      sectionName: https
+  hostnames:
+    - mailing.integration-project-2026-groep-2.my.be
+  rules:
+    - backendRefs:
+        - name: mailing-app
+          port: 80
+
+---
+# ─── HTTPRoute: Control Room ──────────────────────────────────────────────────
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: HTTPRoute
+metadata:
+  name: controlroom-route
+spec:
+  parentRefs:
+    - name: prod-gateway
+      sectionName: https
+  hostnames:
+    - controlroom.integration-project-2026-groep-2.my.be
+  rules:
+    - backendRefs:
+        - name: controlroom
+          port: 80
+
+---
+# ─── HTTPRoute: Planning ──────────────────────────────────────────────────────
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: HTTPRoute
+metadata:
+  name: planning-route
+spec:
+  parentRefs:
+    - name: prod-gateway
+      sectionName: https
+  hostnames:
+    - planning.integration-project-2026-groep-2.my.be
+  rules:
+    - backendRefs:
+        - name: planning
+          port: 80
+
+---
+# ─── HTTPRoute: Headlamp ──────────────────────────────────────────────────────
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: HTTPRoute
+metadata:
+  name: headlamp-route
+spec:
+  parentRefs:
+    - name: prod-gateway
+      sectionName: https
+  hostnames:
+    - headlamp.integration-project-2026-groep-2.my.be
+  rules:
+    - backendRefs:
+        - name: headlamp
+          port: 80
