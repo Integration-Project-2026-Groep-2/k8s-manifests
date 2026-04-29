@@ -3,8 +3,7 @@ kind: Kustomization
 
 # ── Base ─────────────────────────────────────────────────────────────────────
 resources:
-  - ../../          # root kustomization (apps, gateway, infrastructure, …)
-  - namespace.yaml  # prod-specific namespace
+  - ../../base          # root kustomization (apps, gateway, infrastructure, …)
 
 # ── Namespace override ────────────────────────────────────────────────────────
 namespace: integration-project-2026-groep-2-prod
