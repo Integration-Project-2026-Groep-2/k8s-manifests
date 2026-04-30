@@ -1,5 +1,5 @@
 <#
-Seals all env files in `base/secrets` into SealedSecret manifests in `base/sealed-secrets`.
+Seals all env files in `base/secrets` into SealedSecret manifests in `base/secrets`.
 Requires: kubectl, kubeseal (https://github.com/bitnami-labs/sealed-secrets)
 Usage: .\scripts\seal-secrets.ps1 [-Namespace <k8s namespace>]
 Always fetches the controller cert and strips namespace fields so Kustomize can set them.
@@ -25,7 +25,7 @@ function Invoke-Checked {
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $secretsDir = Join-Path $repoRoot "base\secrets"
-$sealedDir = Join-Path $repoRoot "base\sealed-secrets"
+$sealedDir = Join-Path $repoRoot "base\secrets"
 
 if (-not (Get-Command kubectl -ErrorAction SilentlyContinue)) {
     Write-Error "kubectl not found in PATH"
@@ -118,4 +118,4 @@ foreach ($env in $envFiles) {
     }
 }
 
-Write-Output "Done. Review files in base/sealed-secrets and commit them."
+Write-Output "Done. Review files in base/secrets and commit them."
