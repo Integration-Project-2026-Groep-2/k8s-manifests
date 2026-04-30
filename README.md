@@ -26,6 +26,7 @@ Before starting the Kubernetes cluster, ensure you have:
 3. **Helm**: Version 3.0+
 4. **git**: For cloning this repository
 5. **Kustomize**: Included with kubectl, used for deploying manifests
+6. **kubeseal CLI**: Required to generate SealedSecret manifests
 
 ## Getting Started
 
@@ -58,6 +59,26 @@ kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/st
 
 # Wait for Argo CD to be ready
 kubectl wait --for=condition=available --timeout=300s deployment/argocd-server -n argocd
+```
+
+#### 1.4 Install Sealed Secrets Controller (Helm preferred)
+
+```bash
+helm repo add sealed-secrets https://bitnami-labs.github.io/sealed-secrets
+helm repo update
+
+helm install sealed-secrets sealed-secrets/sealed-secrets \
+  -n kube-system \
+  --set fullnameOverride=sealed-secrets
+
+# Verify it is running
+kubectl get pods -n kube-system -l app.kubernetes.io/name=sealed-secrets
+```
+
+If you cannot use Helm, you can apply the controller manifest directly:
+
+```bash
+kubectl apply -f https://github.com/bitnami-labs/sealed-secrets/releases/latest/download/controller.yaml
 ```
 
 ### Step 2: Configure Secrets
