@@ -26,3 +26,4 @@ resources:
   - gateway/gateway.yaml
   - network-policies/default-deny.yaml
   - network-policies/policies.yaml
+  - secrets
