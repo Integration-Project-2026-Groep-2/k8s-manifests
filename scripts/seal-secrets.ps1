@@ -95,7 +95,7 @@ foreach ($env in $envFiles) {
         )
         Invoke-Checked -FilePath kubectl -Arguments $kubectlArgs | Set-Content -Path $tempFile -Encoding utf8
 
-        $sealArgs = @('--format','yaml')
+        $sealArgs = @('--format','yaml','--scope','cluster-wide')
         if ($useCert) {
             $sealArgs += @('--cert',$certPath)
         }
