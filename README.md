@@ -1,10 +1,7 @@
-> [!CAUTION]
-> This is still a Work In Progress, it will probably NOT WORK
-
 # Kubernetes Manifests
 
 This repository contains the Kubernetes manifests for the integration platform.
-It is set up for GitOps with Argo CD and uses Kustomize overlays for dev and prod.
+It is set up for GitOps with Argo CD and uses Kustomize overlays for dev and prod environments.
 
 ## What is here
 
@@ -17,92 +14,220 @@ It is set up for GitOps with Argo CD and uses Kustomize overlays for dev and pro
 ├── infrastructure/      Elasticsearch, Kibana, RabbitMQ
 ├── network-policies/    Default deny and workload network rules
 ├── overlays/            dev and prod Kustomize overlays
-└── secrets/             SealedSecrets manifests
+└── base/secrets/        Local .env templates and destination-cluster secret bootstrap docs
 ```
-
-## Current setup
-
-The shared platform resources live in [base/kustomization.yaml](base/kustomization.yaml). It includes the shared namespace, workloads, gateway class, Headlamp, network policies, and the committed SealedSecrets resources. The [overlays/dev/kustomization.yaml](overlays/dev/kustomization.yaml) and [overlays/prod/kustomization.yaml](overlays/prod/kustomization.yaml) layers add the environment-specific gateway, namespace, labels, and resource tuning.
-
-Plaintext Secret manifests are no longer part of the bootstrap path.
-
-The Argo CD App-of-Apps entry point is [argocd/app-of-apps.yaml](argocd/app-of-apps.yaml). It points at [argocd/apps](argocd/apps), where the dev and prod Applications live:
-
-- [argocd/apps/app-dev.yaml](argocd/apps/app-dev.yaml)
-- [argocd/apps/app-prod.yaml](argocd/apps/app-prod.yaml)
 
 ## Prerequisites
 
-1. Install Gateway API CRDs.
-2. Install NGINX Gateway Fabric using [gateway/gateway-controller-values.yaml](gateway/gateway-controller-values.yaml).
-3. Install Argo CD.
-4. Install the Sealed Secrets controller.
-5. Create the Cloudflare Origin Certificate Secret in both environment namespaces.
-6. Optionally install Headlamp for cluster visibility.
+Before starting the Kubernetes cluster, ensure you have:
 
-Example commands:
+1. **Kubernetes Cluster**: A running Kubernetes cluster (v1.26+)
+2. **kubectl**: Configured and connected to your cluster
+3. **Helm**: Version 3.0+
+4. **git**: For cloning this repository
+5. **Kustomize**: Included with kubectl, used for deploying manifests
+
+## Getting Started
+
+### Step 1: Install Core Infrastructure Components
+
+Install the required controllers and admission systems:
+
+#### 1.1 Install Gateway API CRDs
 
 ```bash
 kubectl kustomize "https://github.com/nginx/nginx-gateway-fabric/config/crd/gateway-api/standard?ref=v2.5.1" | kubectl apply -f -
+```
 
+#### 1.2 Install NGINX Gateway Fabric
+
+```bash
 helm install ngf oci://ghcr.io/nginx/charts/nginx-gateway-fabric \
   -n nginx-gateway --create-namespace \
   -f gateway/gateway-controller-values.yaml
 
+# Verify it's running
+kubectl get pods -n nginx-gateway
+```
+
+#### 1.3 Install Argo CD
+
+```bash
 kubectl create namespace argocd
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 
-helm repo add sealed-secrets https://bitnami-labs.github.io/sealed-secrets
-helm install sealed-secrets sealed-secrets/sealed-secrets -n kube-system
+# Wait for Argo CD to be ready
+kubectl wait --for=condition=available --timeout=300s deployment/argocd-server -n argocd
 ```
 
-The Cloudflare Origin Certificate is mounted as `cloudflare-origin-cert` in both `integration-project-2026-groep-2-dev` and `integration-project-2026-groep-2-prod`.
+### Step 2: Configure Secrets
 
-## Deployment
+Secrets are managed on the destination cluster. Keep the `.env` files local and use them only to bootstrap Kubernetes Secrets into the target namespaces. See [base/secrets/README.md](base/secrets/README.md) for the exact workflow.
 
-Bootstrap the repository in two steps:
+#### 2.1 Create your local `.env` files
+
+Copy the `.example` templates to `.env` files and fill in the real values locally.
+
+```powershell
+Get-ChildItem base\secrets\*.example | ForEach-Object {
+  Copy-Item $_.FullName ($_.FullName -replace '\.example$', '')
+}
+```
+
+#### 2.2 Bootstrap Kubernetes Secrets on the destination cluster from the local `.env` files
+
+Run [scripts/bootstrap-secrets.ps1](scripts/bootstrap-secrets.ps1) to create or update the required Kubernetes Secrets in your destination cluster namespaces.
+
+**Important:** `.env` files stay out of Git. Argo CD only reads the Kubernetes Secrets that already exist in the destination cluster.
+
+### Step 3: Deploy Platform Workloads
+
+Deploy the base platform resources:
 
 ```bash
-# 1. Deploy the platform workloads
+# Deploy base resources (workloads, gateway, network policies, secrets)
 kubectl apply -k .
+```
 
-# 2. Bootstrap Argo CD's app-of-apps entry point
+This command applies all resources from the base Kustomize configuration, including:
+- Namespaces
+- Workloads (apps, infrastructure)
+- Gateway resources
+- Network policies
+
+It does not create the application secrets. Those are created separately on the destination cluster from your local `.env` files.
+
+### Step 4: Bootstrap Argo CD
+
+Initialize Argo CD's App-of-Apps pattern:
+
+```bash
+# Bootstrap Argo CD with the app-of-apps entry point
 kubectl apply -k argocd/
 ```
 
-The root Kustomize entry point creates the workloads, secrets, gateway, and network policies. The separate [argocd/kustomization.yaml](argocd/kustomization.yaml) creates the `app-of-apps` Application, which then registers:
+This creates the `app-of-apps` Application which then automatically registers:
+- [argocd/apps/app-dev.yaml](argocd/apps/app-dev.yaml) - Development environment
+- [argocd/apps/app-prod.yaml](argocd/apps/app-prod.yaml) - Production environment
 
-- [argocd/apps/app-dev.yaml](argocd/apps/app-dev.yaml)
-- [argocd/apps/app-prod.yaml](argocd/apps/app-prod.yaml)
+### Step 5: (Optional) Install Headlamp
 
-Argo CD then syncs the dev or prod overlay depending on which Application you enable.
+For cluster visibility and management UI:
+
+```bash
+# Headlamp is automatically deployed as part of the base configuration
+# It will be available once port forwarding or ingress is set up
+
+# Port forward to access Headlamp locally:
+kubectl port-forward -n integration-project-2026-groep-2-dev svc/headlamp 3000:80
+# Then visit http://localhost:3000
+```
+
+## Verification
+
+Verify that all components are running correctly:
+
+```bash
+# Check Gateway Fabric
+kubectl get pods -n nginx-gateway
+
+# Check Argo CD
+kubectl get pods -n argocd
+
+# Check application namespaces
+kubectl get namespaces -o name | Select-String integration-project
+
+# Check if applications are syncing in Argo CD
+kubectl get applications -A
+
+# View Argo CD UI (port forward)
+kubectl port-forward svc/argocd-server -n argocd 8080:443
+# Then visit https://localhost:8080 (ignore certificate warning)
+```
+
+## Current Architecture
+
+The shared platform resources live in [base/kustomization.yaml](base/kustomization.yaml). It includes:
+- Shared namespace and workloads
+- Gateway class definition
+- Headlamp deployment
+- Network policies
+- Destination-cluster secret bootstrap flow from local `.env` files
+
+The [overlays/dev/kustomization.yaml](overlays/dev/kustomization.yaml) and [overlays/prod/kustomization.yaml](overlays/prod/kustomization.yaml) layers add environment-specific:
+- Gateway configurations
+- Namespace setup
+- Labels and resource tuning
+
+The Argo CD App-of-Apps entry point is [argocd/app-of-apps.yaml](argocd/app-of-apps.yaml), which orchestrates deployment across environments.
 
 ## Environments
 
-The overlays are:
+The overlays are structured for two environments:
 
-- [overlays/dev/kustomization.yaml](overlays/dev/kustomization.yaml) for the development namespace and lighter resource settings.
-- [overlays/prod/kustomization.yaml](overlays/prod/kustomization.yaml) for the production namespace and higher availability settings.
+- **Development** ([overlays/dev/kustomization.yaml](overlays/dev/kustomization.yaml)): Dev namespace with lighter resource settings
+  - Namespace: `integration-project-2026-groep-2-dev`
+  - Headlamp: `dev-headlamp.integration-project-2026-groep-2.my.be`
+  - App hosts (dev-prefixed): `dev.integration-project-2026-groep-2.my.be`, etc.
 
-Gateway hostnames:
+- **Production** ([overlays/prod/kustomization.yaml](overlays/prod/kustomization.yaml)): Prod namespace with higher availability settings
+  - Namespace: `integration-project-2026-groep-2-prod`
+  - Headlamp: `headlamp.integration-project-2026-groep-2.my.be`
+  - App hosts: `integration-project-2026-groep-2.my.be`, `www.integration-project-2026-groep-2.my.be`, `facturatie.integration-project-2026-groep-2.my.be`, `kassa.integration-project-2026-groep-2.my.be`, `mailing.integration-project-2026-groep-2.my.be`, `rabbitmq.integration-project-2026-groep-2.my.be`
 
-- Dev Headlamp: `dev-headlamp.integration-project-2026-groep-2.my.be`
-- Prod Headlamp: `headlamp.integration-project-2026-groep-2.my.be`
-- Prod app hosts: `integration-project-2026-groep-2.my.be`, `www.integration-project-2026-groep-2.my.be`, `facturatie.integration-project-2026-groep-2.my.be`, `kassa.integration-project-2026-groep-2.my.be`, `mailing.integration-project-2026-groep-2.my.be`, `rabbitmq.integration-project-2026-groep-2.my.be`
-- Dev app hosts use the matching `dev-*` prefixes
+## Secrets Management
 
-## Secrets
+Secrets are managed on the destination cluster from local `base/secrets/.env.*` files. Follow these practices:
 
-Secrets are stored as SealedSecrets under [secrets](secrets). Commit the sealed manifests, not plaintext Secret objects. If you need to rotate a secret, regenerate the SealedSecret and replace the matching file in this directory.
-
-The companion notes are in [secrets/README.md](secrets/README.md).
+- **Never commit `.env` files**
+- **Keep `.example` files as templates only**
+- **Use the bootstrap script** to create Kubernetes Secrets in the destination cluster from your `.env` files
+- See [base/secrets/README.md](base/secrets/README.md) for detailed instructions
 
 ## Networking
 
-The gateway controller exposes the entrypoint on NodePort 30097. Cloudflare routes inbound web traffic to that port, and the Gateways terminate TLS using the Cloudflare Origin Certificate.
+The gateway controller exposes the platform on **NodePort 30097**:
 
-Headlamp is deployed separately per environment and routed through the same gateway layer as the applications.
+- **Cloudflare**: Routes inbound web traffic to port 30097
+- **Kubernetes Gateway**: Terminates TLS using the Cloudflare Origin Certificate
+- **Architecture**: Cloudflare (HTTPS) → K8s Gateway on port 30097 (HTTPS with origin cert) → Apps
+- **Headlamp**: Deployed per environment and routed through the same gateway layer
+
+## Troubleshooting
+
+### Check component status
+
+```bash
+# All core components
+kubectl get pods --all-namespaces
+
+# Gateway Fabric status
+kubectl get gatewayclass,gateway,httproute
+
+# Argo CD applications
+kubectl get applications -A
+
+# Local secret bootstrap status
+kubectl get secrets -n integration-project-2026-groep-2
+```
+
+### Common issues
+
+**Applications not syncing in Argo CD**
+- Check if the Application is enabled (should appear in ArgoCD UI)
+- Verify the Kubernetes Secrets were bootstrapped in the destination cluster from the local `.env` files
+- Check logs: `kubectl logs -n argocd -l app.kubernetes.io/name=argocd-server`
+
+**Gateway not routing traffic**
+- Verify HTTPRoutes are created: `kubectl get httproutes -A`
+- Check gateway controller logs: `kubectl logs -n nginx-gateway -l app=nginx-gateway`
+- Ensure NodePort 30097 is accessible
+
+**Secrets not being injected into pods**
+- Verify `.env` files exist in `base/secrets/` locally
+- Re-run [scripts/bootstrap-secrets.ps1](scripts/bootstrap-secrets.ps1)
+- Check if secrets exist in the destination namespace: `kubectl get secrets -n integration-project-2026-groep-2`
 
 ## Notes
 
-The repository still reflects a migration from Docker Compose, so some comments and manifests are intentionally transitional. The most important current change is that the deployment path now runs through Argo CD, Kustomize overlays, and SealedSecrets instead of local `.env`-driven secret generation.
+The repository reflects a migration from Docker Compose to Kubernetes. The deployment now runs through Argo CD, Kustomize overlays, and destination-cluster Secrets bootstrapped from local `.env` files. All components are designed to work together in this GitOps workflow.

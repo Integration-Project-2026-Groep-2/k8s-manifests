@@ -17,11 +17,6 @@ service:
       name: https
       nodePort: 30098
 
-nginx:
-  config:
-    http:
-      server_tokens: "off"
-
 podAnnotations:
   prometheus.io/scrape: "true"
   prometheus.io/port: "10254"
