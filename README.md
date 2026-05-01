@@ -11,6 +11,7 @@ It is set up for GitOps with Argo CD and uses Kustomize overlays for dev and pro
 ├── argocd/              Argo CD App-of-Apps and child Applications
 ├── apps/                Team services and their deployments
 ├── gateway/             NGINX Gateway Fabric and Gateway API config
+├── headlamp/            Standalone Headlamp cluster UI (non-Argo, separate namespace)
 ├── infrastructure/      Elasticsearch, Kibana, RabbitMQ
 ├── network-policies/    Default deny and workload network rules
 ├── overlays/            dev and prod Kustomize overlays
@@ -133,14 +134,14 @@ This creates the `app-of-apps` Application which then automatically registers:
 
 ### Step 5: (Optional) Install Headlamp
 
-For cluster visibility and management UI:
+For cluster visibility and management UI (standalone install, separate namespace):
 
 ```bash
-# Headlamp is automatically deployed as part of the base configuration
-# It will be available once port forwarding or ingress is set up
+# Install Headlamp in its own namespace
+kubectl apply -k headlamp
 
 # Port forward to access Headlamp locally:
-kubectl port-forward -n integration-project-2026-groep-2-dev svc/headlamp 3000:80
+kubectl port-forward -n headlamp svc/headlamp 3000:80
 # Then visit http://localhost:3000
 ```
 
@@ -171,7 +172,6 @@ kubectl port-forward svc/argocd-server -n argocd 8080:443
 The shared platform resources live in [base/kustomization.yaml](base/kustomization.yaml). It includes:
 - Shared namespace and workloads
 - Gateway class definition
-- Headlamp deployment
 - Network policies
 - Destination-cluster secret bootstrap flow from local `.env` files
 
@@ -188,12 +188,10 @@ The overlays are structured for two environments:
 
 - **Development** ([overlays/dev/kustomization.yaml](overlays/dev/kustomization.yaml)): Dev namespace with lighter resource settings
   - Namespace: `integration-project-2026-groep-2-dev`
-  - Headlamp: `dev-headlamp.integration-project-2026-groep-2.my.be`
   - App hosts (dev-prefixed): `dev.integration-project-2026-groep-2.my.be`, etc.
 
 - **Production** ([overlays/prod/kustomization.yaml](overlays/prod/kustomization.yaml)): Prod namespace with higher availability settings
   - Namespace: `integration-project-2026-groep-2-prod`
-  - Headlamp: `headlamp.integration-project-2026-groep-2.my.be`
   - App hosts: `integration-project-2026-groep-2.my.be`, `www.integration-project-2026-groep-2.my.be`, `facturatie.integration-project-2026-groep-2.my.be`, `kassa.integration-project-2026-groep-2.my.be`, `mailing.integration-project-2026-groep-2.my.be`, `rabbitmq.integration-project-2026-groep-2.my.be`
 
 ## Secrets Management
@@ -212,7 +210,7 @@ The gateway controller exposes the platform on **NodePort 30097**:
 - **Cloudflare**: Routes inbound web traffic to port 30097
 - **Kubernetes Gateway**: Terminates TLS using the Cloudflare Origin Certificate
 - **Architecture**: Cloudflare (HTTPS) → K8s Gateway on port 30097 (HTTPS with origin cert) → Apps
-- **Headlamp**: Deployed per environment and routed through the same gateway layer
+- **Headlamp**: Installed separately in the `headlamp` namespace (manual `kubectl apply -k headlamp`)
 
 ## Troubleshooting
 
@@ -251,4 +249,4 @@ kubectl get secrets -n integration-project-2026-groep-2
 
 ## Notes
 
-The repository reflects a migration from Docker Compose to Kubernetes. The deployment now runs through Argo CD, Kustomize overlays, and destination-cluster Secrets bootstrapped from local `.env` files. All components are designed to work together in this GitOps workflow.
+The repository reflects a migration from Docker Compose to Kubernetes. The deployment now runs through Argo CD, Kustomize overlays, and destination-cluster Secrets bootstrapped from local `.env` files. Headlamp is installed separately in its own namespace.
