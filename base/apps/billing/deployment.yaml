@@ -82,7 +82,6 @@ spec:
   selector:
     app: billing-app
   ports:
-    - name: http
       port: 80
       targetPort: 80
 ---

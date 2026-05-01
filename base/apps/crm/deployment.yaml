@@ -59,19 +59,3 @@ spec:
             limits:
               cpu: "500m"
               memory: "512Mi"
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: crm
-  namespace: integration-project-2026-groep-2
-  labels:
-    app: crm
-spec:
-  type: ClusterIP
-  selector:
-    app: crm
-  ports:
-    - name: http
-      port: 80
-      targetPort: 8080   # UPDATE to actual port
