@@ -224,14 +224,14 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: frontend-drupal
+  name: frontend
   namespace: integration-project-2026-groep-2
   labels:
-    app: frontend-drupal
+    app: frontend
 spec:
   type: ClusterIP
   selector:
-    app: frontend-drupal
+    app: frontend
   ports:
     - name: http
       port: 80

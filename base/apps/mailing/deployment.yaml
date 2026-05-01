@@ -63,14 +63,14 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: mailing-app
+  name: mailing
   namespace: integration-project-2026-groep-2
   labels:
-    app: mailing-app
+    app: mailing
 spec:
   type: ClusterIP
   selector:
-    app: mailing-app
+    app: mailing
   ports:
     - name: http
       port: 3000
