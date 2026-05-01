@@ -31,6 +31,8 @@ metadata:
   namespace: integration-project-2026-groep-2
   labels:
     app: rabbitmq
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"  # Sync before applications and databases
 spec:
   replicas: 1
   selector:

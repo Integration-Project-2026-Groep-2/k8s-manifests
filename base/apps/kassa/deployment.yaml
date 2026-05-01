@@ -5,6 +5,8 @@ metadata:
   namespace: integration-project-2026-groep-2
   labels:
     app: kassa-db
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"  # Sync before applications, after infrastructure
 spec:
   serviceName: kassa-db
   replicas: 1
@@ -83,6 +85,8 @@ metadata:
   namespace: integration-project-2026-groep-2
   labels:
     app: kassa-db
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"  # Sync after databases and infrastructure
 spec:
   type: ClusterIP
   clusterIP: None

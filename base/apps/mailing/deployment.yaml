@@ -1,24 +1,26 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mailing-app
+  name: mailing
   namespace: integration-project-2026-groep-2
   labels:
-    app: mailing-app
+    app: mailing
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"  # Sync after databases and infrastructure
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: mailing-app
+      app: mailing
   template:
     metadata:
       labels:
         rabbitmq-client: "true"
-        app: mailing-app
+        app: mailing
     spec:
       securityContext: {}
       containers:
-        - name: mailing-app
+        - name: mailing
           image: ghcr.io/integration-project-2026-groep-2/mailing:latest-dev
           ports:
             - containerPort: 3000
@@ -83,6 +85,8 @@ metadata:
   namespace: integration-project-2026-groep-2
   labels:
     app: mailing-db
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"  # Sync before applications, after infrastructure
 spec:
   serviceName: mailing-db
   replicas: 1
