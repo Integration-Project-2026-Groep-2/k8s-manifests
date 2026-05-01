@@ -28,13 +28,6 @@ spec:
       labels:
         app: elasticsearch
     spec:
-      initContainers:
-        # Elasticsearch requires vm.max_map_count >= 262144
-        - name: sysctl
-          image: busybox:1.36
-          command: ["sysctl", "-w", "vm.max_map_count=262144"]
-          securityContext:
-            privileged: true
       securityContext:
         runAsUser: 1000
         fsGroup: 1000
