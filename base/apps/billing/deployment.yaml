@@ -21,7 +21,7 @@ spec:
         - name: billing-app
           image: ghcr.io/integration-project-2026-groep-2/facturatie:latest-dev
           ports:
-            - containerPort: 8080   # UPDATE to actual port
+            - containerPort: 80
           env:
             - name: DB_HOST
               value: billing-db
@@ -60,15 +60,13 @@ spec:
               cpu: "500m"
               memory: "512Mi"
           readinessProbe:
-            httpGet:
-              path: /health   # UPDATE to actual health endpoint
-              port: 8080
+            tcpSocket:
+              port: 80
             initialDelaySeconds: 15
             periodSeconds: 10
           livenessProbe:
-            httpGet:
-              path: /health
-              port: 8080
+            tcpSocket:
+              port: 80
             initialDelaySeconds: 30
             periodSeconds: 30
 ---
@@ -86,7 +84,7 @@ spec:
   ports:
     - name: http
       port: 80
-      targetPort: 8080   # UPDATE to actual port
+      targetPort: 80
 ---
 apiVersion: apps/v1
 kind: StatefulSet
