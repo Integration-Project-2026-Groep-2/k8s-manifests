@@ -192,6 +192,7 @@ metadata:
   namespace: integration-project-2026-groep-2
 spec:
   accessModes: ["ReadWriteOnce"]
+  storageClassName: hostpath
   resources:
     requests:
       storage: 2Gi
@@ -203,6 +204,7 @@ metadata:
   namespace: integration-project-2026-groep-2
 spec:
   accessModes: ["ReadWriteOnce"]
+  storageClassName: hostpath
   resources:
     requests:
       storage: 2Gi
@@ -214,6 +216,7 @@ metadata:
   namespace: integration-project-2026-groep-2
 spec:
   accessModes: ["ReadWriteOnce"]
+  storageClassName: hostpath
   resources:
     requests:
       storage: 5Gi
@@ -230,5 +233,6 @@ spec:
   selector:
     app: frontend-drupal
   ports:
+    - name: http
       port: 80
       targetPort: 80
