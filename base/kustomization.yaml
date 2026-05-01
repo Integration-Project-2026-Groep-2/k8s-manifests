@@ -8,10 +8,10 @@ resources:
   - namespace.yaml
   - infrastructure/elasticsearch/service.yaml
   - infrastructure/elasticsearch/deployment.yaml
-  - infrastructure/kibana/deployment.yaml
   - infrastructure/kibana/service.yaml
+  - infrastructure/kibana/deployment.yaml
   - infrastructure/rabbitmq/service.yaml
-  - infrastructure/rabbitmq/statefulset.yaml
+  - infrastructure/rabbitmq/deployment.yaml
   - apps/billing/deployment.yaml
   - apps/controlroom/deployment.yaml
   - apps/crm/deployment.yaml
