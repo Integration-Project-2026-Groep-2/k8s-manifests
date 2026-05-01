@@ -18,7 +18,7 @@ spec:
 ---
 # ─── RabbitMQ ─────────────────────────────────────────────────────────────────
 # Allow all app pods to reach RabbitMQ on AMQP (5672)
-# Allow ingress-nginx to reach RabbitMQ management (15672) for the UI
+# Allow the Gateway controller to reach RabbitMQ management (15672) for the UI
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -38,11 +38,11 @@ spec:
               rabbitmq-client: "true"
       ports:
         - port: 5672
-    # Management UI from ingress controller
+    # Management UI from Gateway controller
     - from:
         - namespaceSelector:
             matchLabels:
-              kubernetes.io/metadata.name: ingress-nginx
+              kubernetes.io/metadata.name: nginx-gateway
       ports:
         - port: 15672
 
@@ -88,7 +88,7 @@ spec:
     - from:
         - namespaceSelector:
             matchLabels:
-              kubernetes.io/metadata.name: ingress-nginx
+              kubernetes.io/metadata.name: nginx-gateway
       ports:
         - port: 5601
   egress:
@@ -116,7 +116,7 @@ spec:
     - from:
         - podSelector:
             matchLabels:
-              app: billing-app
+              app: billing
       ports:
         - port: 3306
 
@@ -137,7 +137,7 @@ spec:
     - from:
         - podSelector:
             matchLabels:
-              app: mailing-app
+              app: mailing
       ports:
         - port: 3306
 
@@ -179,7 +179,7 @@ spec:
     - from:
         - podSelector:
             matchLabels:
-              app: frontend-drupal
+              app: frontend
       ports:
         - port: 3306
 
@@ -205,12 +205,12 @@ spec:
         - port: 5432
 
 ---
-# ─── Apps exposed through ingress ────────────────────────────────────────────
-# Allow ingress-nginx to reach frontend, kassa, billing, mailing, controlroom, planning
+# ─── Apps exposed through Gateway ────────────────────────────────────────────
+# Allow the Gateway controller to reach frontend, kassa, billing, mailing, controlroom, planning
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: allow-ingress-to-apps
+  name: allow-gateway-to-apps
   namespace: integration-project-2026-groep-2
 spec:
   podSelector:
@@ -232,7 +232,7 @@ spec:
     - from:
         - namespaceSelector:
             matchLabels:
-              kubernetes.io/metadata.name: ingress-nginx
+              kubernetes.io/metadata.name: nginx-gateway
 
 ---
 # ─── Headlamp egress to Kubernetes API ───────────────────────────────────────
