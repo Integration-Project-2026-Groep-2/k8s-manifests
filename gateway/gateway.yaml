@@ -1,0 +1,21 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: main-gateway
+  namespace: main-gateway
+spec:
+  gatewayClassName: nginx
+  listeners:
+    - name: https
+      protocol: HTTPS
+      port: 443
+      hostnames:
+        - "*.integration-project-2026-groep-2.my.be"
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: main-gateway-cert
+            kind: Secret
+      allowedRoutes:
+        namespaces:
+          from: All

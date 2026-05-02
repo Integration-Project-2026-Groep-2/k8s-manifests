@@ -10,7 +10,7 @@ It is set up for GitOps with Argo CD and uses Kustomize overlays for dev and pro
 ├── base/               Shared Kustomize base for workloads, gateway class, and policies
 ├── argocd/              Argo CD App-of-Apps and child Applications
 ├── apps/                Team services and their deployments
-├── gateway/             NGINX Gateway Fabric and Gateway API config
+├── gateway/             NGINX Gateway Fabric controller values and Gateway API config
 ├── headlamp/            Standalone Headlamp cluster UI (non-Argo, separate namespace)
 ├── infrastructure/      Elasticsearch, Kibana, RabbitMQ
 ├── network-policies/    Default deny and workload network rules
@@ -45,14 +45,25 @@ kubectl kustomize "https://github.com/nginx/nginx-gateway-fabric/config/crd/gate
 
 ```bash
 helm install ngf oci://ghcr.io/nginx/charts/nginx-gateway-fabric \
-  -n nginx-gateway --create-namespace \
+  -n main-gateway --create-namespace \
   -f gateway/gateway-controller-values.yaml
 
 # Verify it's running
-kubectl get pods -n nginx-gateway
+kubectl get pods -n main-gateway
 ```
 
-#### 1.3 Install Argo CD
+#### 1.3 Apply the Gateway API resources
+
+The gateway objects in [gateway/kustomization.yaml](gateway/kustomization.yaml) are separate from the Helm release. They include the cluster-scoped `GatewayClass`, the namespaced `Gateway`, and the `HTTPRoute` definitions.
+
+```bash
+kubectl apply -k gateway/
+
+# Verify the Gateway and routes exist
+kubectl get gatewayclass,gateway,httproute -A
+```
+
+#### 1.4 Install Argo CD
 
 ```bash
 kubectl create namespace argocd
@@ -62,7 +73,7 @@ kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/st
 kubectl wait --for=condition=available --timeout=300s deployment/argocd-server -n argocd
 ```
 
-#### 1.4 Install Sealed Secrets Controller (Helm preferred)
+#### 1.5 Install Sealed Secrets Controller (Helm preferred)
 
 ```bash
 helm repo add sealed-secrets https://bitnami-labs.github.io/sealed-secrets
@@ -114,7 +125,6 @@ kubectl apply -k .
 This command applies all resources from the base Kustomize configuration, including:
 - Namespaces
 - Workloads (apps, infrastructure)
-- Gateway resources
 - Network policies
 
 It does not create the application secrets. Those are created separately on the destination cluster from your local `.env` files.
@@ -171,12 +181,15 @@ kubectl port-forward svc/argocd-server -n argocd 8080:443
 
 The shared platform resources live in [base/kustomization.yaml](base/kustomization.yaml). It includes:
 - Shared namespace and workloads
-- Gateway class definition
 - Network policies
 - Destination-cluster secret bootstrap flow from local `.env` files
 
+The [gateway/kustomization.yaml](gateway/kustomization.yaml) bundle adds the gateway-specific resources:
+- Cluster-scoped `GatewayClass`
+- Namespaced `Gateway`
+- HTTPRoutes
+
 The [overlays/dev/kustomization.yaml](overlays/dev/kustomization.yaml) and [overlays/prod/kustomization.yaml](overlays/prod/kustomization.yaml) layers add environment-specific:
-- Gateway configurations
 - Namespace setup
 - Labels and resource tuning
 
@@ -211,6 +224,12 @@ The gateway controller exposes the platform on **NodePort 30097**:
 - **Kubernetes Gateway**: Terminates TLS using the Cloudflare Origin Certificate
 - **Architecture**: Cloudflare (HTTPS) → K8s Gateway on port 30097 (HTTPS with origin cert) → Apps
 - **Headlamp**: Installed separately in the `headlamp` namespace (manual `kubectl apply -k headlamp`)
+
+The gateway API objects are installed separately from Helm:
+
+1. Install the Gateway API CRDs
+2. Install the NGINX Gateway Fabric controller with Helm
+3. Apply [gateway/kustomization.yaml](gateway/kustomization.yaml) to create the `GatewayClass`, `Gateway`, and `HTTPRoute` objects
 
 ## Troubleshooting
 
