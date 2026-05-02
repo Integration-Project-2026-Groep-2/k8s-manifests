@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Infrastructure components kustomization
+# Orchestrates all infrastructure-level services
+
+resources:
+  - elasticsearch/service.yaml
+  - elasticsearch/deployment.yaml
+  - kibana/service.yaml
+  - kibana/deployment.yaml
+  - rabbitmq-operator/
+
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: infrastructure
