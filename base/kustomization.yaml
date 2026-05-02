@@ -19,7 +19,6 @@ resources:
   - apps/kassa/deployment.yaml
   - apps/mailing/deployment.yaml
   - apps/planning/deployment.yaml
-  - gateway/gateway.yaml
   - network-policies/default-deny.yaml
   - network-policies/policies.yaml
   - secrets
