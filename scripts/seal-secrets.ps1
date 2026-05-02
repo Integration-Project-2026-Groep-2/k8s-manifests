@@ -116,9 +116,17 @@ foreach ($env in $envFiles) {
     Write-Output "Sealing '$envFile' as '$secretName' -> $outFile"
 
     try {
-        # If TLS files exist alongside the .env (e.g. gateway.crt / gateway.key), create a TLS secret
-        $certFilePath = Join-Path $secretsDir ("${name}.crt")
-        $keyFilePath = Join-Path $secretsDir ("${name}.key")
+        # Prefer TLS files stored under gateway/secrets (cluster gateway certs)
+        $gatewaySecretsDir = Join-Path $repoRoot "gateway\secrets"
+        $certFilePath = Join-Path $gatewaySecretsDir ("${name}.crt")
+        $keyFilePath = Join-Path $gatewaySecretsDir ("${name}.key")
+
+        # Fallback to base/secrets if gateway/secrets do not contain the files
+        if ((-not (Test-Path $certFilePath)) -or (-not (Test-Path $keyFilePath))) {
+            $certFilePath = Join-Path $secretsDir ("${name}.crt")
+            $keyFilePath = Join-Path $secretsDir ("${name}.key")
+        }
+
         if ((Test-Path $certFilePath) -and (Test-Path $keyFilePath)) {
             $kubectlArgs = @(
                 'create','secret','tls',$secretName,
