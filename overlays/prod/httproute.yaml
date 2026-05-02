@@ -17,7 +17,7 @@ spec:
     - www.integration-project-2026-groep-2.my.be
   rules:
     - backendRefs:
-        - name: frontend-drupal
+        - name: frontend
           port: 80
 
 ---
@@ -98,7 +98,7 @@ spec:
   rules:
     - backendRefs:
         - name: kassa
-          port: 80
+          port: 8069
 
 ---
 # ─── HTTPRoute: Mailing ───────────────────────────────────────────────────────
@@ -119,8 +119,8 @@ spec:
     - mailing.integration-project-2026-groep-2.my.be
   rules:
     - backendRefs:
-        - name: mailing-app
-          port: 80
+        - name: mailing
+          port: 3000
 
 ---
 # ─── HTTPRoute: Control Room ──────────────────────────────────────────────────
@@ -137,8 +137,8 @@ spec:
     - controlroom.integration-project-2026-groep-2.my.be
   rules:
     - backendRefs:
-        - name: controlroom
-          port: 80
+        - name: kibana
+          port: 5601
 
 ---
 # ─── HTTPRoute: Planning ──────────────────────────────────────────────────────
