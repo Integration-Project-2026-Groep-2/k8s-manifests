@@ -42,7 +42,7 @@ spec:
     - from:
         - namespaceSelector:
             matchLabels:
-              kubernetes.io/metadata.name: nginx-gateway
+              kubernetes.io/metadata.name: main-gateway
       ports:
         - port: 15672
 
@@ -88,7 +88,7 @@ spec:
     - from:
         - namespaceSelector:
             matchLabels:
-              kubernetes.io/metadata.name: nginx-gateway
+              kubernetes.io/metadata.name: main-gateway
       ports:
         - port: 5601
   egress:
@@ -230,9 +230,9 @@ spec:
     - Ingress
   ingress:
     - from:
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: nginx-gateway
+      - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: main-gateway
 
 ---
 # ─── Headlamp egress to Kubernetes API ───────────────────────────────────────
