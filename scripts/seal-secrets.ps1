@@ -3,6 +3,22 @@ Seals all env files in `base/secrets` into SealedSecret manifests in `base/secre
 Requires: kubectl, kubeseal (https://github.com/bitnami-labs/sealed-secrets)
 Usage: .\scripts\seal-secrets.ps1 [-Namespace <k8s namespace>]
 Always fetches the controller cert and strips namespace fields so Kustomize can set them.
+
+Examples:
+  .env.billing              -> billing-sealedsecret.yaml (billing-secret)
+  .env.htpasswd-facturatie  -> htpasswd-facturatie-sealedsecret.yaml (htpasswd-facturatie-secret)
+  .env.htpasswd-kassa       -> htpasswd-kassa-sealedsecret.yaml (htpasswd-kassa-secret)
+  .env.htpasswd-mailing     -> htpasswd-mailing-sealedsecret.yaml (htpasswd-mailing-secret)
+
+For htpasswd authentication secrets, create .env files with:
+  .env.htpasswd-<service>
+  
+Format the content as a single line base64-encoded htpasswd file:
+  auth=<base64-encoded-htpasswd>
+
+Or use the format (which kubectl will handle):
+  HTPASSWD_DATA=user1:hashed_password1
+  HTPASSWD_DATA=user2:hashed_password2
 #>
 param(
     [string]$Namespace = "integration-project-2026-groep-2"
