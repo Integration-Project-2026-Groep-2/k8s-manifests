@@ -67,11 +67,13 @@ kubectl get gatewayclass,gateway,httproute -A
 
 ```bash
 kubectl create namespace argocd
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+kubectl apply --server-side -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 
 # Wait for Argo CD to be ready
 kubectl wait --for=condition=available --timeout=300s deployment/argocd-server -n argocd
 ```
+
+If your kubectl version does not support server-side apply, install Argo CD with Helm instead or apply the manifests in smaller chunks. The full install bundle includes large CRDs, and client-side `kubectl apply` can exceed the annotation size limit.
 
 #### 1.5 Install Sealed Secrets Controller (Helm preferred)
 
