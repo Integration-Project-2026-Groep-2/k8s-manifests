@@ -6,4 +6,5 @@ kind: Kustomization
 
 # Apply base configuration with all workloads, gateway, policies, and secrets
 resources:
-  - base/
+  - argocd/apps/app-dev.yaml
+  - argocd/apps/app-prod.yaml
