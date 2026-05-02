@@ -230,9 +230,9 @@ spec:
     - Ingress
   ingress:
     - from:
-      - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: main-gateway
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: main-gateway
 
 ---
 # ─── Headlamp egress to Kubernetes API ───────────────────────────────────────
