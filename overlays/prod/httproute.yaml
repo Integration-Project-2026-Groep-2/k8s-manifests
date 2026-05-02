@@ -1,23 +1,5 @@
-# Kubernetes Gateway API - Development Environment
-# Dev-specific Gateway and HTTPRoutes with dev subdomain routing
-
----
-# ── Gateway (Dev Entrypoint - HTTPS only with Cloudflare Origin Cert) ──────
-apiVersion: gateway.networking.k8s.io/v1
-kind: Gateway
-metadata:
-  name: dev-gateway
-spec:
-  gatewayClassName: nginx
-  listeners:
-    - name: https
-      port: 443
-      protocol: HTTPS
-      tls:
-        mode: Terminate
-        certificateRefs:
-          - name: cloudflare-origin-cert
-            kind: Secret
+# Kubernetes Gateway API - Production Environment
+# Prod-specific HTTPRoutes with prod domain routing
 
 ---
 # ─── HTTPRoute: Main website (Drupal) ──────────────────────────────────────────
@@ -27,11 +9,11 @@ metadata:
   name: frontend-route
 spec:
   parentRefs:
-    - name: dev-gateway
+    - name: prod-gateway
       sectionName: https
   hostnames:
-    - dev.integration-project-2026-groep-2.my.be
-    - dev-www.integration-project-2026-groep-2.my.be
+    - integration-project-2026-groep-2.my.be
+    - www.integration-project-2026-groep-2.my.be
   rules:
     - backendRefs:
         - name: frontend-drupal
@@ -45,10 +27,10 @@ metadata:
   name: rabbitmq-route
 spec:
   parentRefs:
-    - name: dev-gateway
+    - name: prod-gateway
       sectionName: https
   hostnames:
-    - dev-rabbitmq.integration-project-2026-groep-2.my.be
+    - rabbitmq.integration-project-2026-groep-2.my.be
   rules:
     - backendRefs:
         - name: rabbitmq
@@ -62,10 +44,10 @@ metadata:
   name: kibana-route
 spec:
   parentRefs:
-    - name: dev-gateway
+    - name: prod-gateway
       sectionName: https
   hostnames:
-    - dev-kibana.integration-project-2026-groep-2.my.be
+    - kibana.integration-project-2026-groep-2.my.be
   rules:
     - backendRefs:
         - name: kibana
@@ -80,13 +62,13 @@ metadata:
   annotations:
     nginx.gateway.networking.k8s.io/auth-type: basic
     nginx.gateway.networking.k8s.io/auth-secret: htpasswd-facturatie
-    nginx.gateway.networking.k8s.io/auth-realm: "Facturatie Access (Dev)"
+    nginx.gateway.networking.k8s.io/auth-realm: "Facturatie Access"
 spec:
   parentRefs:
-    - name: dev-gateway
+    - name: prod-gateway
       sectionName: https
   hostnames:
-    - dev-facturatie.integration-project-2026-groep-2.my.be
+    - facturatie.integration-project-2026-groep-2.my.be
   rules:
     - backendRefs:
         - name: billing-app
@@ -101,13 +83,13 @@ metadata:
   annotations:
     nginx.gateway.networking.k8s.io/auth-type: basic
     nginx.gateway.networking.k8s.io/auth-secret: htpasswd-kassa
-    nginx.gateway.networking.k8s.io/auth-realm: "Kassa Access (Dev)"
+    nginx.gateway.networking.k8s.io/auth-realm: "Kassa Access"
 spec:
   parentRefs:
-    - name: dev-gateway
+    - name: prod-gateway
       sectionName: https
   hostnames:
-    - dev-kassa.integration-project-2026-groep-2.my.be
+    - kassa.integration-project-2026-groep-2.my.be
   rules:
     - backendRefs:
         - name: kassa
@@ -122,13 +104,13 @@ metadata:
   annotations:
     nginx.gateway.networking.k8s.io/auth-type: basic
     nginx.gateway.networking.k8s.io/auth-secret: htpasswd-mailing
-    nginx.gateway.networking.k8s.io/auth-realm: "Mailing Access (Dev)"
+    nginx.gateway.networking.k8s.io/auth-realm: "Mailing Access"
 spec:
   parentRefs:
-    - name: dev-gateway
+    - name: prod-gateway
       sectionName: https
   hostnames:
-    - dev-mailing.integration-project-2026-groep-2.my.be
+    - mailing.integration-project-2026-groep-2.my.be
   rules:
     - backendRefs:
         - name: mailing-app
@@ -136,16 +118,16 @@ spec:
 
 ---
 # ─── HTTPRoute: Control Room ──────────────────────────────────────────────────
-apiVersion: gateway.networking.k8s.io/v1beta1
+apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
   name: controlroom-route
 spec:
   parentRefs:
-    - name: dev-gateway
+    - name: prod-gateway
       sectionName: https
   hostnames:
-    - dev-controlroom.integration-project-2026-groep-2.my.be
+    - controlroom.integration-project-2026-groep-2.my.be
   rules:
     - backendRefs:
         - name: controlroom
@@ -153,16 +135,16 @@ spec:
 
 ---
 # ─── HTTPRoute: Planning ──────────────────────────────────────────────────────
-apiVersion: gateway.networking.k8s.io/v1beta1
+apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
   name: planning-route
 spec:
   parentRefs:
-    - name: dev-gateway
+    - name: prod-gateway
       sectionName: https
   hostnames:
-    - dev-planning.integration-project-2026-groep-2.my.be
+    - planning.integration-project-2026-groep-2.my.be
   rules:
     - backendRefs:
         - name: planning
@@ -170,16 +152,16 @@ spec:
 
 ---
 # ─── HTTPRoute: Headlamp ──────────────────────────────────────────────────────
-apiVersion: gateway.networking.k8s.io/v1beta1
+apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
   name: headlamp-route
 spec:
   parentRefs:
-    - name: dev-gateway
+    - name: prod-gateway
       sectionName: https
   hostnames:
-    - dev-headlamp.integration-project-2026-groep-2.my.be
+    - headlamp.integration-project-2026-groep-2.my.be
   rules:
     - backendRefs:
         - name: headlamp
