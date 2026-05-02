@@ -9,7 +9,7 @@ metadata:
   name: frontend-route
 spec:
   parentRefs:
-    - name: prod-gateway
+    - name: main-gateway
       sectionName: https
   hostnames:
     - integration-project-2026-groep-2.my.be
@@ -27,7 +27,7 @@ metadata:
   name: rabbitmq-route
 spec:
   parentRefs:
-    - name: prod-gateway
+    - name: main-gateway
       sectionName: https
   hostnames:
     - rabbitmq.integration-project-2026-groep-2.my.be
@@ -44,7 +44,7 @@ metadata:
   name: kibana-route
 spec:
   parentRefs:
-    - name: prod-gateway
+    - name: main-gateway
       sectionName: https
   hostnames:
     - kibana.integration-project-2026-groep-2.my.be
@@ -65,7 +65,7 @@ metadata:
     nginx.gateway.networking.k8s.io/auth-realm: "Facturatie Access"
 spec:
   parentRefs:
-    - name: prod-gateway
+    - name: main-gateway
       sectionName: https
   hostnames:
     - facturatie.integration-project-2026-groep-2.my.be
@@ -86,7 +86,7 @@ metadata:
     nginx.gateway.networking.k8s.io/auth-realm: "Kassa Access"
 spec:
   parentRefs:
-    - name: prod-gateway
+    - name: main-gateway
       sectionName: https
   hostnames:
     - kassa.integration-project-2026-groep-2.my.be
@@ -107,7 +107,7 @@ metadata:
     nginx.gateway.networking.k8s.io/auth-realm: "Mailing Access"
 spec:
   parentRefs:
-    - name: prod-gateway
+    - name: main-gateway
       sectionName: https
   hostnames:
     - mailing.integration-project-2026-groep-2.my.be
@@ -124,7 +124,7 @@ metadata:
   name: controlroom-route
 spec:
   parentRefs:
-    - name: prod-gateway
+    - name: main-gateway
       sectionName: https
   hostnames:
     - controlroom.integration-project-2026-groep-2.my.be
@@ -141,7 +141,7 @@ metadata:
   name: planning-route
 spec:
   parentRefs:
-    - name: prod-gateway
+    - name: main-gateway
       sectionName: https
   hostnames:
     - planning.integration-project-2026-groep-2.my.be
@@ -158,7 +158,7 @@ metadata:
   name: headlamp-route
 spec:
   parentRefs:
-    - name: prod-gateway
+    - name: main-gateway
       sectionName: https
   hostnames:
     - headlamp.integration-project-2026-groep-2.my.be
