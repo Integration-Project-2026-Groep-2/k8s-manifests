@@ -10,6 +10,7 @@ metadata:
 spec:
   parentRefs:
     - name: main-gateway
+      namespace: main-gateway
       sectionName: https
   hostnames:
     - dev.integration-project-2026-groep-2.my.be
@@ -28,6 +29,7 @@ metadata:
 spec:
   parentRefs:
     - name: main-gateway
+      namespace: main-gateway
       sectionName: https
   hostnames:
     - dev-rabbitmq.integration-project-2026-groep-2.my.be
@@ -45,6 +47,7 @@ metadata:
 spec:
   parentRefs:
     - name: main-gateway
+      namespace: main-gateway
       sectionName: https
   hostnames:
     - dev-kibana.integration-project-2026-groep-2.my.be
@@ -66,6 +69,7 @@ metadata:
 spec:
   parentRefs:
     - name: main-gateway
+      namespace: main-gateway
       sectionName: https
   hostnames:
     - dev-facturatie.integration-project-2026-groep-2.my.be
@@ -87,6 +91,7 @@ metadata:
 spec:
   parentRefs:
     - name: main-gateway
+      namespace: main-gateway
       sectionName: https
   hostnames:
     - dev-kassa.integration-project-2026-groep-2.my.be
@@ -108,6 +113,7 @@ metadata:
 spec:
   parentRefs:
     - name: main-gateway
+      namespace: main-gateway
       sectionName: https
   hostnames:
     - dev-mailing.integration-project-2026-groep-2.my.be
@@ -125,6 +131,7 @@ metadata:
 spec:
   parentRefs:
     - name: main-gateway
+      namespace: main-gateway
       sectionName: https
   hostnames:
     - dev-controlroom.integration-project-2026-groep-2.my.be
@@ -142,6 +149,7 @@ metadata:
 spec:
   parentRefs:
     - name: main-gateway
+      namespace: main-gateway
       sectionName: https
   hostnames:
     - dev-planning.integration-project-2026-groep-2.my.be
