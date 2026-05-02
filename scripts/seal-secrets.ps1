@@ -95,20 +95,46 @@ foreach ($env in $envFiles) {
         $name = $env.BaseName.TrimStart('.')
     }
 
-    $secretName = "${name}-secret"
-    $outFile = Join-Path $sealedDir ("${name}-sealedsecret.yaml")
+    # Allow overriding the final secret name from the .env file using SECRET_NAME=<name>
+    $envRaw = Get-Content -Path $envFile -Raw
+    $secretNameMatch = [regex]::Match($envRaw, '^[ \t]*SECRET_NAME[ \t]*=[ \t]*(.+)$','Multiline')
+    if ($secretNameMatch.Success) {
+        $secretName = $secretNameMatch.Groups[1].Value.Trim()
+    } else {
+        $secretName = "${name}-secret"
+    }
+
+    $sealedBaseName = $secretName
+    if ($sealedBaseName -like '*-secret') {
+        $sealedBaseName = $sealedBaseName -replace '-secret$', ''
+    }
+
+    $outFile = Join-Path $sealedDir ("${sealedBaseName}-sealedsecret.yaml")
     $tempFile = Join-Path $sealedDir ("temp-${name}-secret.yaml")
     $sealedTemp = Join-Path $sealedDir ("temp-${name}-sealedsecret.yaml")
 
     Write-Output "Sealing '$envFile' as '$secretName' -> $outFile"
 
     try {
-        $kubectlArgs = @(
-            'create','secret','generic',$secretName,
-            "--from-env-file=$envFile",
-            "--namespace=$Namespace",
-            '--dry-run=client','-o','yaml'
-        )
+        # If TLS files exist alongside the .env (e.g. gateway.crt / gateway.key), create a TLS secret
+        $certFilePath = Join-Path $secretsDir ("${name}.crt")
+        $keyFilePath = Join-Path $secretsDir ("${name}.key")
+        if ((Test-Path $certFilePath) -and (Test-Path $keyFilePath)) {
+            $kubectlArgs = @(
+                'create','secret','tls',$secretName,
+                "--cert=$certFilePath",
+                "--key=$keyFilePath",
+                "--namespace=$Namespace",
+                '--dry-run=client','-o','yaml'
+            )
+        } else {
+            $kubectlArgs = @(
+                'create','secret','generic',$secretName,
+                "--from-env-file=$envFile",
+                "--namespace=$Namespace",
+                '--dry-run=client','-o','yaml'
+            )
+        }
         Invoke-Checked -FilePath kubectl -Arguments $kubectlArgs | Set-Content -Path $tempFile -Encoding utf8
 
         $sealArgs = @('--format','yaml','--scope','cluster-wide')
