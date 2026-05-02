@@ -76,6 +76,16 @@ try {
 $envFiles = Get-ChildItem -Path $secretsDir -File |
     Where-Object { $_.Name -like '.env.*' -and $_.Name -notlike '*.example' }
 
+# Also include any env files placed under gateway/secrets (for TLS/cluster gateway secrets)
+$gatewaySecretsDir = Join-Path $repoRoot "gateway\secrets"
+if (Test-Path $gatewaySecretsDir) {
+    $gatewayEnvFiles = Get-ChildItem -Path $gatewaySecretsDir -File |
+        Where-Object { $_.Name -like '.env.*' -and $_.Name -notlike '*.example' }
+    if ($gatewayEnvFiles) {
+        $envFiles = $envFiles + $gatewayEnvFiles
+    }
+}
+
 if (-not $envFiles) {
     Write-Warning "No .env files found in $secretsDir"
     exit 0
@@ -109,7 +119,14 @@ foreach ($env in $envFiles) {
         $sealedBaseName = $sealedBaseName -replace '-secret$', ''
     }
 
-    $outFile = Join-Path $sealedDir ("${sealedBaseName}-sealedsecret.yaml")
+    # Decide output directory: prefer gateway/secrets when TLS input is under gateway/secrets
+    $gatewaySecretsDir = Join-Path $repoRoot "gateway\secrets"
+    $outDir = $sealedDir
+    if ((Test-Path $gatewaySecretsDir) -and (Test-Path (Join-Path $gatewaySecretsDir ("${name}.crt")))) {
+        $outDir = $gatewaySecretsDir
+    }
+
+    $outFile = Join-Path $outDir ("${sealedBaseName}-sealedsecret.yaml")
     $tempFile = Join-Path $sealedDir ("temp-${name}-secret.yaml")
     $sealedTemp = Join-Path $sealedDir ("temp-${name}-sealedsecret.yaml")
 
