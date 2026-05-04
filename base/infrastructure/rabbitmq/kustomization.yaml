@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# RabbitMQ Cluster configuration
+# Deploys the RabbitmqCluster CRD in the application namespace
+
+namespace: integration-project-2026-groep-2
+
+resources:
+  - rabbitmq-cluster.yaml
+
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: infrastructure
+      app.kubernetes.io/component: messaging
