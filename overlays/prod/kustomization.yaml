@@ -48,6 +48,7 @@ patches:
             memory: "512Mi"
     target:
       kind: Deployment
+      labelSelector: app in (frontend,billing-app,crm,controlroom,kassa,mailing)
 
   # Enable pod disruption budget awareness: prefer spreading across nodes
   - patch: |-
