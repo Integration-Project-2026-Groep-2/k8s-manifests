@@ -4,7 +4,6 @@ kind: Kustomization
 namespace: rabbitmq-system
 
 resources:
-  - namespace.yaml
   - helm-release.yaml
 
 labels:

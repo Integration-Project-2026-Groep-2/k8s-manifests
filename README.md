@@ -95,6 +95,31 @@ If you cannot use Helm, you can apply the controller manifest directly:
 kubectl apply -f https://github.com/bitnami-labs/sealed-secrets/releases/latest/download/controller.yaml
 ```
 
+#### 1.6 Install RabbitMQ Cluster Operator (recommended: kubectl)
+
+The repository provides a helper script to install the RabbitMQ Cluster Operator, or you can install it directly from the upstream manifest. We prefer the upstream manifest for a minimal, canonical install:
+
+```bash
+kubectl apply -f "https://github.com/rabbitmq/cluster-operator/releases/latest/download/cluster-operator.yml"
+```
+
+Alternatively run the included installer script which applies the upstream manifest by default and creates the `rabbitmq-system` namespace. The script will abort if it detects a Flux installation (this repository avoids managing Flux-controlled operator deployments). Example:
+
+```powershell
+pwsh .\scripts\install-rabbitmq-operator.ps1 -Namespace integration-project-2026-groep-2 -WaitForReady $true
+```
+
+If you want the script to also install `cert-manager` (optional), pass `-InstallCertManager $true`:
+
+```powershell
+pwsh .\scripts\install-rabbitmq-operator.ps1 -InstallCertManager $true
+```
+
+Notes:
+- The operator runs in the `rabbitmq-system` namespace and manages `RabbitmqCluster` CRs across namespaces (one operator can serve dev and prod clusters).
+- Installing `cert-manager` is optional; without it you must supply TLS secrets yourself or disable auto-TLS in the CR configuration.
+- We do not use Flux for operator installation in this repo; the installer will refuse to run if Flux is present to avoid conflicts with GitOps controllers.
+
 ### Step 2: Configure Secrets
 
 Secrets are managed on the destination cluster. Keep the `.env` files local and use them only to bootstrap Kubernetes Secrets into the target namespaces. See [base/secrets/README.md](base/secrets/README.md) for the exact workflow.

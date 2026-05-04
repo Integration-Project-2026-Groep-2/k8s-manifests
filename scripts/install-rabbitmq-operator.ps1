@@ -14,7 +14,8 @@ param(
     [string]$Namespace = "integration-project-2026-groep-2",
     [int]$Replicas = 3,
     [bool]$WaitForReady = $true,
-    [int]$TimeoutSeconds = 600
+    [int]$TimeoutSeconds = 600,
+    [bool]$InstallCertManager = $false
 )
 
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
@@ -121,22 +122,28 @@ try {
 # Check for Flux
 Write-Status "Checking for FluxCD..."
 $fluxCheck = kubectl get ns flux-system 2>$null
-if (-not $fluxCheck) {
-    Write-Status "FluxCD not detected. Operator will be deployed via kubectl apply."
+if ($fluxCheck) {
+    Write-Error "FluxCD detected in cluster; this script does not support Flux-managed operator deployments. Aborting."
+    exit 1
+} else {
+    Write-Status "FluxCD not detected. Proceeding with kubectl-based operator install."
 }
 
-# Step 1: Install cert-manager if needed
-Write-Status "Checking for cert-manager..."
-$certManagerNs = kubectl get ns cert-manager 2>$null
-if (-not $certManagerNs) {
-    Write-Status "Installing cert-manager..."
-    kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.2/cert-manager.yaml
-    
-    Write-Status "Waiting for cert-manager to be ready..."
-    kubectl wait --for=condition=available --timeout=300s deployment/cert-manager -n cert-manager 2>$null
-    Write-Success "cert-manager installed and ready"
+# Step 1: (optional) Install cert-manager if requested
+if ($InstallCertManager) {
+    Write-Status "Checking for cert-manager..."
+    $certManagerNs = kubectl get ns cert-manager 2>$null
+    if (-not $certManagerNs) {
+        Write-Status "Installing cert-manager..."
+        kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.2/cert-manager.yaml
+        Write-Status "Waiting for cert-manager to be ready..."
+        kubectl wait --for=condition=available --timeout=300s deployment/cert-manager -n cert-manager 2>$null
+        Write-Success "cert-manager installed and ready"
+    } else {
+        Write-Success "cert-manager already installed"
+    }
 } else {
-    Write-Success "cert-manager already installed"
+    Write-Status "Skipping cert-manager installation (set -InstallCertManager to true to enable)"
 }
 
 # Step 2: Create rabbitmq-system namespace
@@ -144,27 +151,21 @@ Write-Status "Creating rabbitmq-system namespace..."
 kubectl create namespace rabbitmq-system --dry-run=client -o yaml | kubectl apply -f -
 Write-Success "Namespace ready"
 
-# Step 3: Install the operator via Helm chart directly
-Write-Status "Installing RabbitMQ Cluster Operator..."
+# Step 3: Install the RabbitMQ Cluster Operator using the official manifest
+Write-Status "Installing RabbitMQ Cluster Operator using official manifest..."
 try {
-    # Add Bitnami Helm repo
-    helm repo add bitnami https://charts.bitnami.com/bitnami 2>$null
-    helm repo update 2>$null
-    
-    # Install operator via Helm
-    helm upgrade --install rabbitmq-cluster-operator bitnami/rabbitmq-cluster-operator `
-        -n rabbitmq-system `
-        --set useCertManager=true `
-        --set certManager.enabled=true `
-        --set operator.image.tag=1.13.1 `
-        --wait `
-        --timeout 5m
-    
-    Write-Success "RabbitMQ Cluster Operator installed"
+    kubectl apply -f "https://github.com/rabbitmq/cluster-operator/releases/latest/download/cluster-operator.yml"
+    Write-Success "RabbitMQ Cluster Operator manifest applied"
 } catch {
-    Write-Error "Failed to install operator via Helm. Attempting kubectl apply..."
-    # Fallback: Apply operator manifests directly
-    kubectl apply -f base/infrastructure/rabbitmq-operator/helm-release.yaml
+    Write-Error "Failed to apply the official operator manifest: $_"
+    Write-Status "Attempting to apply the bundled helm-release as a fallback..."
+    try {
+        kubectl apply -f base/infrastructure/rabbitmq-operator/helm-release.yaml
+        Write-Success "Fallback operator manifest applied"
+    } catch {
+        Write-Error "Fallback apply also failed. Please check connectivity and manifest paths."
+        exit 1
+    }
 }
 
 # Step 4: Wait for operator to be ready
