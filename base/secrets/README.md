@@ -12,6 +12,11 @@ secrets/
 ├── .env.billing.example      ← Commit this (template)
 ├── .env.crm                  ← LOCAL ONLY (not committed)
 ├── .env.crm.example          ← Commit this (template)
+├── .env.rabbitmq             ← LOCAL ONLY (not committed)
+├── .env.rabbitmq.example     ← Commit this (template)
+├── .env.rabbitmq-default-user ← LOCAL ONLY (not committed)
+├── .env.rabbitmq-default-user.example
+│                             ← Commit this (template)
 └── ... etc for each service
 ```
 
@@ -29,6 +34,7 @@ secrets/
    # Edit with your values
    notepad base\secrets\.env.billing
    notepad base\secrets\.env.rabbitmq
+   notepad base\secrets\.env.rabbitmq-default-user
    # ... etc for each service
    ```
 
@@ -48,3 +54,12 @@ If you prefer manual commands, create each Secret with `kubectl create secret ge
 1. Create `.env.NEWSERVICE` file with required variables
 2. Commit `.env.NEWSERVICE.example` as a template
 3. Update your local bootstrap script or manual secret creation step to include the new Secret name and `.env` file
+
+### RabbitMQ
+
+RabbitMQ uses two secrets:
+
+* `.env.rabbitmq` -> `rabbitmq-secret` for `RABBITMQ_USER`, `RABBITMQ_PASS`, `RABBITMQ_VHOST`, and `RABBITMQ_MANAGEMENT_PREFIX`
+* `.env.rabbitmq-default-user` -> `rabbitmq-default-user` for `username` and `password`
+
+Seal both files with `scripts/seal-secrets.ps1` and commit the generated `*-sealedsecret.yaml` files.

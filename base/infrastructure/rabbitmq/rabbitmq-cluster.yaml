@@ -1,20 +1,4 @@
 ---
-# Default user secret for RabbitMQ Cluster
-# This replaces the manual environment variables from before
-apiVersion: v1
-kind: Secret
-metadata:
-  name: rabbitmq-default-user
-  namespace: integration-project-2026-groep-2
-  labels:
-    app: rabbitmq
-type: Opaque
-data:
-  # Base64 encoded values - these need to be updated from your sealed secret
-  username: Z3Vlc3Q=  # Change this to your actual username
-  password: Z3Vlc3Q=  # Change this to your actual password
-
----
 # RabbitmqCluster Custom Resource
 # Defines a RabbitMQ cluster using the Cluster Operator
 apiVersion: rabbitmq.com/v1beta1

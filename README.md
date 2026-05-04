@@ -109,6 +109,8 @@ Get-ChildItem base\secrets\*.example | ForEach-Object {
 }
 ```
 
+For RabbitMQ, create both `.env.rabbitmq` and `.env.rabbitmq-default-user` from the templates in [base/secrets](base/secrets).
+
 #### 2.2 Bootstrap Kubernetes Secrets on the destination cluster from the local `.env` files
 
 Run [scripts/bootstrap-secrets.ps1](scripts/bootstrap-secrets.ps1) to create or update the required Kubernetes Secrets in your destination cluster namespaces.

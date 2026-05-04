@@ -17,6 +17,71 @@ param(
     [int]$TimeoutSeconds = 600
 )
 
+$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+$EnvFileCandidates = @(
+    (Join-Path (Join-Path $RepoRoot "secrets") ".env"),
+    (Join-Path $RepoRoot ".env")
+)
+
+function Get-EnvFilePath {
+    foreach ($candidate in $EnvFileCandidates) {
+        if (Test-Path $candidate) {
+            return $candidate
+        }
+    }
+
+    throw "Could not find an env file. Expected secrets/.env or .env in the repository root."
+}
+
+function Import-EnvFile {
+    param([string]$Path)
+
+    $values = @{}
+
+    foreach ($line in Get-Content -Path $Path) {
+        $trimmedLine = $line.Trim()
+
+        if ([string]::IsNullOrWhiteSpace($trimmedLine) -or $trimmedLine.StartsWith("#")) {
+            continue
+        }
+
+        if ($trimmedLine -notmatch '^(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$') {
+            continue
+        }
+
+        $name = $matches[1]
+        $value = $matches[2].Trim()
+
+        if (($value.StartsWith('"') -and $value.EndsWith('"')) -or ($value.StartsWith("'") -and $value.EndsWith("'"))) {
+            $value = $value.Substring(1, $value.Length - 2)
+        }
+
+        $values[$name] = $value
+    }
+
+    return $values
+}
+
+function Get-RequiredEnvValue {
+    param(
+        [hashtable]$Values,
+        [string]$Name
+    )
+
+    if (-not $Values.ContainsKey($Name) -or [string]::IsNullOrWhiteSpace($Values[$Name])) {
+        throw "Missing required RabbitMQ variable: $Name"
+    }
+
+    return $Values[$Name]
+}
+
+$EnvFilePath = Get-EnvFilePath
+$EnvValues = Import-EnvFile -Path $EnvFilePath
+$RabbitmqUser = Get-RequiredEnvValue -Values $EnvValues -Name "RABBITMQ_USER"
+$RabbitmqPass = Get-RequiredEnvValue -Values $EnvValues -Name "RABBITMQ_PASS"
+$RabbitmqVhost = Get-RequiredEnvValue -Values $EnvValues -Name "RABBITMQ_VHOST"
+$RabbitmqManagementPrefix = Get-RequiredEnvValue -Values $EnvValues -Name "RABBITMQ_MANAGEMENT_PREFIX"
+
 function Write-Status {
     param([string]$Message)
     Write-Host "[$(Get-Date -Format 'HH:mm:ss')] $Message" -ForegroundColor Cyan
@@ -117,21 +182,24 @@ if ($WaitForReady) {
 # Step 5: Deploy RabbitmqCluster
 Write-Status "Deploying RabbitmqCluster to namespace: $Namespace..."
 
-# Create default user secret if it doesn't exist
-$secretExists = kubectl get secret rabbitmq-default-user -n $Namespace 2>$null
-if (-not $secretExists) {
-    Write-Status "Creating default user secret..."
-    $username = "guest"
-    $password = "guest"  # CHANGE THIS IN PRODUCTION
-    
-    kubectl create secret generic rabbitmq-default-user `
-        --from-literal=username=$username `
-        --from-literal=password=$password `
-        -n $Namespace `
-        --dry-run=client -o yaml | kubectl apply -f -
-    
-    Write-Status "Default user secret created (username: $username)"
-}
+Write-Status "Loading RabbitMQ values from: $EnvFilePath"
+
+Write-Status "Creating RabbitMQ secrets..."
+kubectl create secret generic rabbitmq-default-user `
+    --from-literal=username=$RabbitmqUser `
+    --from-literal=password=$RabbitmqPass `
+    -n $Namespace `
+    --dry-run=client -o yaml | kubectl apply -f -
+
+kubectl create secret generic rabbitmq-secret `
+    --from-literal=RABBITMQ_USER=$RabbitmqUser `
+    --from-literal=RABBITMQ_PASS=$RabbitmqPass `
+    --from-literal=RABBITMQ_VHOST=$RabbitmqVhost `
+    --from-literal=RABBITMQ_MANAGEMENT_PREFIX=$RabbitmqManagementPrefix `
+    -n $Namespace `
+    --dry-run=client -o yaml | kubectl apply -f -
+
+Write-Success "RabbitMQ secrets created from env file"
 
 # Apply the cluster resources
 kubectl apply -k base/infrastructure/rabbitmq/
@@ -161,6 +229,8 @@ Write-Success "Cluster name: rabbitmq"
 Write-Status "`nConnection endpoints:"
 Write-Status "AMQP (port 5672): rabbitmq.$Namespace.svc.cluster.local:5672"
 Write-Status "Management UI (port 15672): rabbitmq.$Namespace.svc.cluster.local:15672"
+Write-Status "RabbitMQ vhost: $RabbitmqVhost"
+Write-Status "RabbitMQ management prefix: $RabbitmqManagementPrefix"
 
 Write-Status "`nUseful commands:"
 Write-Status "================`n"
