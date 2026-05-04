@@ -52,14 +52,14 @@ spec:
             - name: xpack.security.enabled
               value: "true"
             - name: ES_JAVA_OPTS
-              value: "-Xms2g -Xmx2g"
+              value: "-Xms512m -Xmx512m"
           resources:
             requests:
-              cpu: "500m"
-              memory: "3Gi"
+              cpu: "250m"
+              memory: "512Mi"
             limits:
-              cpu: "2000m"
-              memory: "4Gi"
+              cpu: "1000m"
+              memory: "1Gi"
           readinessProbe:
             httpGet:
               path: /_cluster/health
