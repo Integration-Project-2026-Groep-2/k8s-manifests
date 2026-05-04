@@ -52,15 +52,15 @@ spec:
               memory: "1Gi"
           readinessProbe:
             httpGet:
-              path: /api/status
+              path: /login
               port: 5601
-            initialDelaySeconds: 90
+            initialDelaySeconds: 60
             periodSeconds: 15
             timeoutSeconds: 10
           livenessProbe:
             httpGet:
-              path: /api/status
+              path: /login
               port: 5601
-            initialDelaySeconds: 120
+            initialDelaySeconds: 60
             periodSeconds: 30
             timeoutSeconds: 10

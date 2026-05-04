@@ -63,20 +63,18 @@ spec:
           readinessProbe:
             exec:
               command:
-                - sh
+                - bash
                 - -c
-                - |
-                  curl -fsS -u "elastic:${ELASTIC_PASSWORD}" http://127.0.0.1:9200/_cluster/health >/dev/null
+                - /mnt/elastic-internal/scripts/readiness-probe-script.sh
             initialDelaySeconds: 60
             periodSeconds: 10
             timeoutSeconds: 5
           livenessProbe:
             exec:
               command:
-                - sh
+                - bash
                 - -c
-                - |
-                  curl -fsS -u "elastic:${ELASTIC_PASSWORD}" http://127.0.0.1:9200/_cluster/health >/dev/null
+                - /mnt/elastic-internal/scripts/readiness-probe-script.sh
             initialDelaySeconds: 90
             periodSeconds: 30
             timeoutSeconds: 10
