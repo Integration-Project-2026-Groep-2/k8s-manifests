@@ -68,14 +68,14 @@ spec:
               httpHeaders:
                 - name: Authorization
                   value: "Basic $(echo -n elastic:$(ELASTIC_PASSWORD) | base64)"
-            initialDelaySeconds: 30
+            initialDelaySeconds: 60
             periodSeconds: 10
             timeoutSeconds: 5
           livenessProbe:
             httpGet:
               path: /_cluster/health
               port: 9200
-            initialDelaySeconds: 60
+            initialDelaySeconds: 90
             periodSeconds: 30
             timeoutSeconds: 10
           volumeMounts:
