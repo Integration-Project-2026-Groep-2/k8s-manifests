@@ -61,20 +61,22 @@ spec:
               cpu: "2000m"
               memory: "2Gi"
           readinessProbe:
-            httpGet:
-              path: /_cluster/health
-              port: 9200
-              scheme: HTTP
-              httpHeaders:
-                - name: Authorization
-                  value: "Basic $(echo -n elastic:$(ELASTIC_PASSWORD) | base64)"
+            exec:
+              command:
+                - sh
+                - -c
+                - |
+                  curl -fsS -u "elastic:${ELASTIC_PASSWORD}" http://127.0.0.1:9200/_cluster/health >/dev/null
             initialDelaySeconds: 60
             periodSeconds: 10
             timeoutSeconds: 5
           livenessProbe:
-            httpGet:
-              path: /_cluster/health
-              port: 9200
+            exec:
+              command:
+                - sh
+                - -c
+                - |
+                  curl -fsS -u "elastic:${ELASTIC_PASSWORD}" http://127.0.0.1:9200/_cluster/health >/dev/null
             initialDelaySeconds: 90
             periodSeconds: 30
             timeoutSeconds: 10
