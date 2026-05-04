@@ -9,7 +9,7 @@ resources:
   - elasticsearch/deployment.yaml
   - kibana/service.yaml
   - kibana/deployment.yaml
-  - rabbitmq-operator/
+  - rabbitmq/
 
 labels:
   - pairs:
