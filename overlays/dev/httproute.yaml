@@ -26,6 +26,8 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
   name: rabbitmq-route
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"  # Sync after RabbitMQ is created, so the service exists
 spec:
   parentRefs:
     - name: main-gateway
