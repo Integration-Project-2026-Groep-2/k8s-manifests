@@ -1,0 +1,47 @@
+apiVersion: elasticsearch.k8s.elastic.co/v1
+kind: Elasticsearch
+metadata:
+  name: elasticsearch
+spec:
+  version: 8.13.0
+  # Wire the elastic user password from the SealedSecret (bcrypt hash)
+  auth:
+    fileRealm:
+      - secretName: elastic-credentials
+        entries:
+          - key: ELASTIC_PASSWORD
+            path: users                  # ECK expects htpasswd format here
+    roles:
+      - secretName: elastic-credentials
+  nodeSets:
+    - name: default
+      count: 1
+      config:
+        node.store.allow_mmap: false
+        xpack.security.enabled: true
+      podTemplate:
+        spec:
+          containers:
+            - name: elasticsearch
+              resources:
+                requests:
+                  memory: 1Gi
+                  cpu: 500m
+                limits:
+                  memory: 2Gi
+                  cpu: 1000m
+              # Expose ports from SealedSecret for app consumers
+              env:
+                - name: PORT_ELASTICSEARCH
+                  valueFrom:
+                    secretKeyRef:
+                      name: elastic-credentials
+                      key: PORT_ELASTICSEARCH
+      volumeClaimTemplates:
+        - metadata:
+            name: elasticsearch-data
+          spec:
+            accessModes: ["ReadWriteOnce"]
+            resources:
+              requests:
+                storage: 10Gi

@@ -5,10 +5,10 @@ kind: Kustomization
 # Orchestrates all infrastructure-level services
 
 resources:
-  - elasticsearch/service.yaml
-  - elasticsearch/deployment.yaml
-  - kibana/service.yaml
-  - kibana/deployment.yaml
+  # - elasticsearch/service.yaml
+  - elasticsearch/elasticsearch.yaml
+  # - kibana/service.yaml
+  - kibana/kibana.yaml
   - rabbitmq/
 
 labels:

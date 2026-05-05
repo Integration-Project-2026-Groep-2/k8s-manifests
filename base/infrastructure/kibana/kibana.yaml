@@ -1,0 +1,45 @@
+apiVersion: kibana.k8s.elastic.co/v1
+kind: Kibana
+metadata:
+  name: kibana
+spec:
+  version: 8.13.0
+  count: 1
+  elasticsearchRef:
+    name: elasticsearch              # ECK auto-wires connection
+  # Inject encryption key into Kibana keystore from SealedSecret
+  secureSettings:
+    - secretName: elastic-credentials
+      entries:
+        - key: KIBANA_ENCRYPTION_KEY
+          path: xpack.encryptedSavedObjects.encryptionKey
+  config:
+    xpack.security.enabled: true
+    xpack.encryptedSavedObjects.encryptionKey: ${xpack.encryptedSavedObjects.encryptionKey}
+  podTemplate:
+    spec:
+      containers:
+        - name: kibana
+          resources:
+            requests:
+              memory: 512Mi
+              cpu: 250m
+            limits:
+              memory: 1Gi
+              cpu: 500m
+          env:
+            - name: KIBANA_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: elastic-credentials
+                  key: KIBANA_USERNAME
+            - name: KIBANA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: elastic-credentials
+                  key: KIBANA_PASSWORD
+            - name: PORT_KIBANA
+              valueFrom:
+                secretKeyRef:
+                  name: elastic-credentials
+                  key: PORT_KIBANA
