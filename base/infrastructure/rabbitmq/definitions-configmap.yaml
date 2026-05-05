@@ -27,6 +27,13 @@ data:
           "limits": {}
         },
         {
+          "name": "crm",
+          "password_hash": "Qm3K3FCoa88sHKuUHjizCZmGtUMfzWhCk6ecQrV3KP/MGJTY",
+          "hashing_algorithm": "rabbit_password_hashing_sha256",
+          "tags": [],
+          "limits": {}
+        },
+        {
           "name": "frontend",
           "password_hash": "IABH6xZn/rumFBWCA0ACT8N9Ffx8zQyAwpJQHXbFfwdWQCTA",
           "hashing_algorithm": "rabbit_password_hashing_sha256",
@@ -84,6 +91,13 @@ data:
         },
         {
           "user": "controlroom",
+          "vhost": "/",
+          "configure": ".*",
+          "write": ".*",
+          "read": ".*"
+        },
+        {
+          "user": "crm",
           "vhost": "/",
           "configure": ".*",
           "write": ".*",
