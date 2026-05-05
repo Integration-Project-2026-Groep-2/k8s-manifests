@@ -27,14 +27,14 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: rabbitmq-secret
-                  key: RABBITMQ_USER
-            - name: CRM_RABBITMQ_PASS
+                  key: CRM_RABBITMQ_USER
+            - name: RABBITMQ_PASS
               valueFrom:
                 secretKeyRef:
                   name: rabbitmq-secret
                   key: CRM_RABBITMQ_PASS
             - name: RABBITMQ_URL
-              value: "amqp://$(CRM_RABBITMQ_USER):$(CRM_RABBITMQ_PASS)@rabbitmq:5672/"
+              value: "amqp://$(RABBITMQ_USER):$(RABBITMQ_PASS)@rabbitmq:5672/"
             - name: SALESFORCE_USERNAME
               valueFrom:
                 secretKeyRef:
