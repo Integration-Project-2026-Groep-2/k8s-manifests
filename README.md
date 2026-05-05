@@ -41,41 +41,7 @@ Install the required controllers and admission systems:
 kubectl kustomize "https://github.com/nginx/nginx-gateway-fabric/config/crd/gateway-api/standard?ref=v2.5.1" | kubectl apply -f -
 ```
 
-#### 1.2 Install NGINX Gateway Fabric
-
-```bash
-helm install ngf oci://ghcr.io/nginx/charts/nginx-gateway-fabric \
-  -n main-gateway --create-namespace \
-  -f gateway/gateway-controller-values.yaml
-
-# Verify it's running
-kubectl get pods -n main-gateway
-```
-
-#### 1.3 Apply the Gateway API resources
-
-The gateway objects in [gateway/kustomization.yaml](gateway/kustomization.yaml) are separate from the Helm release. They include the cluster-scoped `GatewayClass`, the namespaced `Gateway`, and the `HTTPRoute` definitions.
-
-```bash
-kubectl apply -k gateway/
-
-# Verify the Gateway and routes exist
-kubectl get gatewayclass,gateway,httproute -A
-```
-
-#### 1.4 Install Argo CD
-
-```bash
-kubectl create namespace argocd
-kubectl apply --server-side -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-
-# Wait for Argo CD to be ready
-kubectl wait --for=condition=available --timeout=300s deployment/argocd-server -n argocd
-```
-
-If your kubectl version does not support server-side apply, install Argo CD with Helm instead or apply the manifests in smaller chunks. The full install bundle includes large CRDs, and client-side `kubectl apply` can exceed the annotation size limit.
-
-#### 1.5 Install Sealed Secrets Controller (Helm preferred)
+#### 1.2 Install Sealed Secrets Controller (Helm preferred)
 
 ```bash
 helm repo add sealed-secrets https://bitnami-labs.github.io/sealed-secrets
@@ -93,6 +59,40 @@ If you cannot use Helm, you can apply the controller manifest directly:
 
 ```bash
 kubectl apply -f https://github.com/bitnami-labs/sealed-secrets/releases/latest/download/controller.yaml
+```
+
+#### 1.3 Install Argo CD
+
+```bash
+kubectl create namespace argocd
+kubectl apply --server-side -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+# Wait for Argo CD to be ready
+kubectl wait --for=condition=available --timeout=300s deployment/argocd-server -n argocd
+```
+
+If your kubectl version does not support server-side apply, install Argo CD with Helm instead or apply the manifests in smaller chunks. The full install bundle includes large CRDs, and client-side `kubectl apply` can exceed the annotation size limit.
+
+#### 1.4 Install NGINX Gateway Fabric
+
+```bash
+helm install ngf oci://ghcr.io/nginx/charts/nginx-gateway-fabric \
+  -n main-gateway --create-namespace \
+  -f gateway/gateway-controller-values.yaml
+
+# Verify it's running
+kubectl get pods -n main-gateway
+```
+
+#### 1.5 Apply the Gateway API resources
+
+The gateway objects in [gateway/kustomization.yaml](gateway/kustomization.yaml) are separate from the Helm release. They include the cluster-scoped `GatewayClass`, the namespaced `Gateway`, and the `HTTPRoute` definitions.
+
+```bash
+kubectl apply -k gateway/
+
+# Verify the Gateway and routes exist
+kubectl get gatewayclass,gateway,httproute -A
 ```
 
 #### 1.6 Install RabbitMQ Cluster Operator (recommended: kubectl)
