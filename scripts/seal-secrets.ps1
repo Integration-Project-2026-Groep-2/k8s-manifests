@@ -196,7 +196,8 @@ foreach ($env in $envFiles) {
         $fileRealmSecretName = 'elasticsearch-file-realm'
         $fileRealmBaseName = 'elasticsearch-file-realm'
         $fileRealmOutFile = Join-Path $sealedDir ("${fileRealmBaseName}-sealedsecret.yaml")
-        $fileRealmTempEnv = Join-Path $sealedDir ("temp-${name}-file-realm.env")
+        $fileRealmUsersFile = Join-Path $sealedDir ("temp-${name}-file-realm-users.txt")
+        $fileRealmRolesFile = Join-Path $sealedDir ("temp-${name}-file-realm-roles.txt")
         $fileRealmTemp = Join-Path $sealedDir ("temp-${name}-file-realm-secret.yaml")
         $fileRealmSealedTemp = Join-Path $sealedDir ("temp-${name}-file-realm-sealedsecret.yaml")
 
@@ -224,16 +225,66 @@ foreach ($env in $envFiles) {
                 $fileRealmUsersLine = $hashLine.Trim()
             }
 
-            $fileRealmContent = "users=$fileRealmUsersLine`nusers_roles=superuser:elastic`n"
+            function Get-FileRealmLine {
+                param(
+                    [string]$UserName,
+                    [string]$Password
+                )
+
+                if ($Password -match '^\$2[aby]\$') {
+                    return "${UserName}:$Password"
+                }
+
+                $hashLine = $null
+                if (Get-Command htpasswd -ErrorAction SilentlyContinue) {
+                    $hashLine = & htpasswd -nbB $UserName $Password
+                } elseif (Get-Command wsl -ErrorAction SilentlyContinue) {
+                    $hashLine = & wsl -e htpasswd -nbB $UserName $Password
+                }
+
+                if (-not $hashLine -or $LASTEXITCODE -ne 0) {
+                    throw "htpasswd failed generating bcrypt hash for $UserName."
+                }
+
+                return $hashLine.Trim()
+            }
+
+            $fileRealmLines = @($fileRealmUsersLine)
+            $fileRealmUsers = @('elastic')
+
+            $envLines = $envRaw -split "`r?`n"
+            $envMap = @{}
+            foreach ($line in $envLines) {
+                if ($line -match '^[ \t]*([^=\s]+)[ \t]*=[ \t]*(.+)$') {
+                    $envMap[$matches[1]] = $matches[2].Trim()
+                }
+            }
+
+            foreach ($key in $envMap.Keys) {
+                if ($key -like '*_ES_USER') {
+                    $userName = $envMap[$key]
+                    $passKey = $key -replace '_ES_USER$', '_ES_PASS'
+                    if ($envMap.ContainsKey($passKey)) {
+                        $userPass = $envMap[$passKey]
+                        $fileRealmLines += (Get-FileRealmLine -UserName $userName -Password $userPass)
+                        $fileRealmUsers += $userName
+                    }
+                }
+            }
+
+            $usersContent = $fileRealmLines -join "`n"
+            $rolesContent = "superuser:" + ($fileRealmUsers -join ',')
 
             Write-Output "Sealing '$envFile' as '$fileRealmSecretName' -> $fileRealmOutFile"
 
             try {
-                Set-Content -Path $fileRealmTempEnv -Value $fileRealmContent -Encoding utf8
+                Set-Content -Path $fileRealmUsersFile -Value $usersContent -Encoding utf8
+                Set-Content -Path $fileRealmRolesFile -Value $rolesContent -Encoding utf8
 
                 $kubectlArgs = @(
                     'create','secret','generic',$fileRealmSecretName,
-                    "--from-env-file=$fileRealmTempEnv",
+                    "--from-file=users=$fileRealmUsersFile",
+                    "--from-file=users_roles=$fileRealmRolesFile",
                     "--namespace=$Namespace",
                     '--dry-run=client','-o','yaml'
                 )
@@ -257,7 +308,8 @@ foreach ($env in $envFiles) {
             } catch {
                 Write-Error "Failed sealing ${envFile} (file realm): $($_)"
             } finally {
-                Remove-Item -Path $fileRealmTempEnv -ErrorAction SilentlyContinue
+                Remove-Item -Path $fileRealmUsersFile -ErrorAction SilentlyContinue
+                Remove-Item -Path $fileRealmRolesFile -ErrorAction SilentlyContinue
                 Remove-Item -Path $fileRealmTemp -ErrorAction SilentlyContinue
                 Remove-Item -Path $fileRealmSealedTemp -ErrorAction SilentlyContinue
             }
