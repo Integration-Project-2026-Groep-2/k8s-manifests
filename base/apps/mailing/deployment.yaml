@@ -54,6 +54,21 @@ spec:
                 secretKeyRef:
                   name: mailing-secret
                   key: MAILING_DB_PASS
+            - name: SENDGRID_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: mailing-secret
+                  key: SENDGRID_API_KEY
+            - name: SENDGRID_FROM_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: mailing-secret
+                  key: SENDGRID_FROM_EMAIL
+            - name: SENDGRID_USER_CONFIRMED_TEMPLATE_ID
+              valueFrom:
+                secretKeyRef:
+                  name: mailing-secret
+                  key: SENDGRID_USER_CONFIRMED_TEMPLATE_ID
           resources:
             requests:
               cpu: "100m"
