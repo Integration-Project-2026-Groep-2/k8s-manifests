@@ -45,34 +45,34 @@ spec:
 
   # Override default user
   override:
-    kind: StatefulSet
-    spec:
-      template:
-        spec:
-          containers:
-          - name: rabbitmq
-            env:
-            - name: RABBITMQ_DEFAULT_USER
-              valueFrom:
-                secretKeyRef:
-                  name: rabbitmq-default-user
-                  key: username
-            - name: RABBITMQ_DEFAULT_PASS
-              valueFrom:
-                secretKeyRef:
-                  name: rabbitmq-default-user
-                  key: password
-            # Additional environment variables from your existing setup
-            - name: RABBITMQ_DEFAULT_VHOST
-              valueFrom:
-                secretKeyRef:
-                  name: rabbitmq-secret
-                  key: RABBITMQ_VHOST
-            - name: RABBITMQ_MANAGEMENT_PREFIX
-              valueFrom:
-                secretKeyRef:
-                  name: rabbitmq-secret
-                  key: RABBITMQ_MANAGEMENT_PREFIX
+    statefulSet:
+      spec:
+        template:
+          spec:
+            containers:
+            - name: rabbitmq
+              env:
+              - name: RABBITMQ_DEFAULT_USER
+                valueFrom:
+                  secretKeyRef:
+                    name: rabbitmq-default-user
+                    key: username
+              - name: RABBITMQ_DEFAULT_PASS
+                valueFrom:
+                  secretKeyRef:
+                    name: rabbitmq-default-user
+                    key: password
+              # Additional environment variables from your existing setup
+              - name: RABBITMQ_DEFAULT_VHOST
+                valueFrom:
+                  secretKeyRef:
+                    name: rabbitmq-secret
+                    key: RABBITMQ_VHOST
+              - name: RABBITMQ_MANAGEMENT_PREFIX
+                valueFrom:
+                  secretKeyRef:
+                    name: rabbitmq-secret
+                    key: RABBITMQ_MANAGEMENT_PREFIX
 
   # Affinity rules for pod distribution
   affinity:
