@@ -118,7 +118,14 @@ pwsh .\scripts\install-rabbitmq-operator.ps1 -InstallCertManager $true
 Notes:
 - The operator runs in the `rabbitmq-system` namespace and manages `RabbitmqCluster` CRs across namespaces (one operator can serve dev and prod clusters).
 - Installing `cert-manager` is optional; without it you must supply TLS secrets yourself or disable auto-TLS in the CR configuration.
-- We do not use Flux for operator installation in this repo; the installer will refuse to run if Flux is present to avoid conflicts with GitOps controllers.
+
+#### 1.7 Install ECK
+
+```bash
+# Install the CRDs and the operator into its own namespace
+kubectl create -f https://download.elastic.co/downloads/eck/2.13.0/crds.yaml
+kubectl apply -f https://download.elastic.co/downloads/eck/2.13.0/operator.ya
+```
 
 ### Step 2: Configure Secrets
 
