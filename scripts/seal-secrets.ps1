@@ -204,8 +204,29 @@ foreach ($env in $envFiles) {
         if (-not $elasticPasswordMatch.Success) {
             Write-Warning "ELASTIC_PASSWORD not found in $envFile. Skipping $fileRealmSecretName."
         } else {
-            $fileRealmUsers = $elasticPasswordMatch.Groups[1].Value.Trim()
-            $fileRealmContent = "users=$fileRealmUsers`nusers_roles=superuser:elastic`n"
+            $elasticPassword = $elasticPasswordMatch.Groups[1].Value.Trim()
+            $fileRealmUsersLine = $null
+
+            if ($elasticPassword -match '^\$2[aby]\$') {
+                $fileRealmUsersLine = "elastic:$elasticPassword"
+            } else {
+                $hashLine = $null
+                if (Get-Command htpasswd -ErrorAction SilentlyContinue) {
+                    $hashLine = & htpasswd -nbB elastic $elasticPassword
+                } elseif (Get-Command wsl -ErrorAction SilentlyContinue) {
+                    $hashLine = & wsl -e htpasswd -nbB elastic $elasticPassword
+                }
+
+                if (-not $hashLine -or $LASTEXITCODE -ne 0) {
+                    throw "htpasswd failed generating bcrypt hash for elastic. Install htpasswd or use WSL with apache2-utils."
+                }
+
+                $fileRealmUsersLine = $hashLine.Trim()
+            } else {
+                throw "ELASTIC_PASSWORD is not a bcrypt hash and htpasswd is not available to generate one."
+            }
+
+            $fileRealmContent = "users=$fileRealmUsersLine`nusers_roles=superuser:elastic`n"
 
             Write-Output "Sealing '$envFile' as '$fileRealmSecretName' -> $fileRealmOutFile"
 
