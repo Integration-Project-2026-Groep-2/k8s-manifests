@@ -33,15 +33,15 @@ spec:
             - name: KIBANA_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: elastic-credentials
+                  name: elastic-secret
                   key: KIBANA_USERNAME
             - name: KIBANA_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: elastic-credentials
+                  name: elastic-secret
                   key: KIBANA_PASSWORD
             - name: PORT_KIBANA
               valueFrom:
                 secretKeyRef:
-                  name: elastic-credentials
+                  name: elastic-secret
                   key: PORT_KIBANA

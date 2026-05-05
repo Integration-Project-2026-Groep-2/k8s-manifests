@@ -32,7 +32,7 @@ spec:
                 - name: PORT_ELASTICSEARCH
                   valueFrom:
                     secretKeyRef:
-                      name: elastic-credentials
+                      name: elastic-secret
                       key: PORT_ELASTICSEARCH
       volumeClaimTemplates:
         - metadata:
