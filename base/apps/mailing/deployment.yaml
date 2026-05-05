@@ -49,7 +49,7 @@ spec:
                 secretKeyRef:
                   name: mailing-secret
                   key: MAILING_DB_USER
-            - name: DB_PASS
+            - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: mailing-secret
