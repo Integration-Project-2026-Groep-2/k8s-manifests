@@ -71,3 +71,4 @@ spec:
             secretName: elasticsearch-es-http-ca-internal
             items:
               - key: tls.crt
+                path: tls.crt
