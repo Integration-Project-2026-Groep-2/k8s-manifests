@@ -22,16 +22,6 @@ spec:
       containers:
         - name: controlroom
           image: ghcr.io/integration-project-2026-groep-2/controlroom:latest-dev
-          volumeMounts:
-            - name: es-ca
-              mountPath: /etc/ssl/certs/es-ca.crt
-              subPath: tls.crt
-          Volumes:
-            - name: es-ca
-              secret:
-                secretName: elasticsearch-es-http-ca-internal
-                items:
-                  - key: tls.crt
           env:
             - name: RABBITMQ_USER
               valueFrom:
@@ -71,3 +61,13 @@ spec:
             limits:
               cpu: "500m"
               memory: "512Mi"
+          volumeMounts:
+            - name: es-ca
+              mountPath: /etc/ssl/certs/es-ca.crt
+              subPath: tls.crt
+      volumes:
+        - name: es-ca
+          secret:
+            secretName: elasticsearch-es-http-ca-internal
+            items:
+              - key: tls.crt
