@@ -33,12 +33,12 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: rabbitmq-secret
-                  key: RABBITMQ_USER
+                  key: MAILING_RABBITMQ_USER
             - name: RABBITMQ_DEFAULT_PASS
               valueFrom:
                 secretKeyRef:
                   name: rabbitmq-secret
-                  key: RABBITMQ_PASS
+                  key: MAILING_RABBITMQ_PASS
             - name: DB_NAME
               valueFrom:
                 secretKeyRef:

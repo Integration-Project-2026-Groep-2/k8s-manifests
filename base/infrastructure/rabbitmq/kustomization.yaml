@@ -8,6 +8,7 @@ namespace: integration-project-2026-groep-2
 
 resources:
   - rabbitmq-cluster.yaml
+  - definitions-configmap.yaml
 
 labels:
   - pairs:

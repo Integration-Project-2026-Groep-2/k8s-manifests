@@ -1,0 +1,233 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rabbitmq-definitions
+  namespace: integration-project-2026-groep-2
+data:
+  definitions.json: |
+    {
+      "rabbit_version": "4.2.5",
+      "rabbitmq_version": "4.2.5",
+      "product_name": "RabbitMQ",
+      "product_version": "4.2.5",
+      "rabbitmq_definition_format": "cluster",
+      "users": [
+        {
+          "name": "lapin",
+          "password_hash": "nO4WJC6E6Nt8cxY4trQtus6foOb8uuAtzwZ9MMIp7EYj6L/T",
+          "hashing_algorithm": "rabbit_password_hashing_sha256",
+          "tags": ["administrator"],
+          "limits": {}
+        },
+        {
+          "name": "controlroom",
+          "password_hash": "tIHjmcSBjyoNhdFf5lXwqLTacZUfx+lrQeu8DEMHM1utXPjP",
+          "hashing_algorithm": "rabbit_password_hashing_sha256",
+          "tags": [],
+          "limits": {}
+        },
+        {
+          "name": "frontend",
+          "password_hash": "IABH6xZn/rumFBWCA0ACT8N9Ffx8zQyAwpJQHXbFfwdWQCTA",
+          "hashing_algorithm": "rabbit_password_hashing_sha256",
+          "tags": [],
+          "limits": {}
+        },
+        {
+          "name": "planning",
+          "password_hash": "zYsCx0JbQdo3GarTMqWfN7DIPOrGH7Zft+ksvP0jsvQlE48o",
+          "hashing_algorithm": "rabbit_password_hashing_sha256",
+          "tags": [],
+          "limits": {}
+        },
+        {
+          "name": "mailing",
+          "password_hash": "WhQrTNygolN0fUkLUeZDD1v9omq2RFYXUtox9y0QYusEe/3T",
+          "hashing_algorithm": "rabbit_password_hashing_sha256",
+          "tags": [],
+          "limits": {}
+        },
+        {
+          "name": "facturatie",
+          "password_hash": "cbJKma84Is8DLPxrVt7I4qrtZit6HO+9vzqsKw/v8XFIzeph",
+          "hashing_algorithm": "rabbit_password_hashing_sha256",
+          "tags": [],
+          "limits": {}
+        },
+        {
+          "name": "kassa",
+          "password_hash": "eXwHyDrsLqRgEq8BGGgmoU4CXZgBY+CC6PlaLHmE/85mcRxo",
+          "hashing_algorithm": "rabbit_password_hashing_sha256",
+          "tags": [],
+          "limits": {}
+        }
+      ],
+      "vhosts": [
+        {
+          "name": "/",
+          "description": "Default virtual host",
+          "metadata": {
+            "description": "Default virtual host",
+            "tags": [],
+            "default_queue_type": "classic"
+          },
+          "tags": []
+        }
+      ],
+      "permissions": [
+        {
+          "user": "lapin",
+          "vhost": "/",
+          "configure": ".*",
+          "write": ".*",
+          "read": ".*"
+        },
+        {
+          "user": "controlroom",
+          "vhost": "/",
+          "configure": ".*",
+          "write": ".*",
+          "read": ".*"
+        },
+        {
+          "user": "frontend",
+          "vhost": "/",
+          "configure": ".*",
+          "write": ".*",
+          "read": ".*"
+        },
+        {
+          "user": "planning",
+          "vhost": "/",
+          "configure": ".*",
+          "write": ".*",
+          "read": ".*"
+        },
+        {
+          "user": "mailing",
+          "vhost": "/",
+          "configure": ".*",
+          "write": ".*",
+          "read": ".*"
+        },
+        {
+          "user": "facturatie",
+          "vhost": "/",
+          "configure": ".*",
+          "write": ".*",
+          "read": ".*"
+        },
+        {
+          "user": "kassa",
+          "vhost": "/",
+          "configure": ".*",
+          "write": ".*",
+          "read": ".*"
+        }
+      ],
+      "topic_permissions": [],
+      "parameters": [],
+      "global_parameters": [
+        {
+          "name": "cluster_tags",
+          "value": []
+        },
+        {
+          "name": "internal_cluster_id",
+          "value": "rabbitmq-cluster-id-Q7JZvuRqHEepaDINwS-GlA"
+        }
+      ],
+      "policies": [],
+      "exchanges": [
+        {
+          "name": "company.topic",
+          "vhost": "/",
+          "type": "topic",
+          "durable": true,
+          "auto_delete": false,
+          "internal": false,
+          "arguments": {}
+        },
+        {
+          "name": "contact.topic",
+          "vhost": "/",
+          "type": "topic",
+          "durable": true,
+          "auto_delete": false,
+          "internal": false,
+          "arguments": {}
+        },
+        {
+          "name": "heartbeat.direct",
+          "vhost": "/",
+          "type": "direct",
+          "durable": true,
+          "auto_delete": false,
+          "internal": false,
+          "arguments": {}
+        },
+        {
+          "name": "invoice.topic",
+          "vhost": "/",
+          "type": "topic",
+          "durable": true,
+          "auto_delete": false,
+          "internal": false,
+          "arguments": {}
+        },
+        {
+          "name": "kassa.topic",
+          "vhost": "/",
+          "type": "topic",
+          "durable": true,
+          "auto_delete": false,
+          "internal": false,
+          "arguments": {}
+        },
+        {
+          "name": "logs.direct",
+          "vhost": "/",
+          "type": "direct",
+          "durable": true,
+          "auto_delete": false,
+          "internal": false,
+          "arguments": {}
+        },
+        {
+          "name": "news.topic",
+          "vhost": "/",
+          "type": "topic",
+          "durable": true,
+          "auto_delete": false,
+          "internal": false,
+          "arguments": {}
+        },
+        {
+          "name": "payment.topic",
+          "vhost": "/",
+          "type": "topic",
+          "durable": true,
+          "auto_delete": false,
+          "internal": false,
+          "arguments": {}
+        },
+        {
+          "name": "planning.topic",
+          "vhost": "/",
+          "type": "topic",
+          "durable": true,
+          "auto_delete": false,
+          "internal": false,
+          "arguments": {}
+        },
+        {
+          "name": "user.topic",
+          "vhost": "/",
+          "type": "topic",
+          "durable": true,
+          "auto_delete": false,
+          "internal": false,
+          "arguments": {}
+        }
+      ]
+    }

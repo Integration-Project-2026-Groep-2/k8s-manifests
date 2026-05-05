@@ -185,12 +185,12 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: rabbitmq-secret
-                  key: RABBITMQ_USER
+                  key: KASSA_RABBITMQ_USER
             - name: RABBIT_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: rabbitmq-secret
-                  key: RABBITMQ_PASS
+                  key: KASSA_RABBITMQ_PASS
             - name: RABBIT_VHOST
               valueFrom:
                 secretKeyRef:

@@ -146,12 +146,12 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: rabbitmq-secret
-                  key: RABBITMQ_USER
+                  key: PLANNING_RABBITMQ_USER
             - name: RABBITMQ_PASS
               valueFrom:
                 secretKeyRef:
                   name: rabbitmq-secret
-                  key: RABBITMQ_PASS
+                  key: PLANNING_RABBITMQ_PASS
             - name: RABBITMQ_URL
               value: "amqp://$(RABBITMQ_USER):$(RABBITMQ_PASS)@rabbitmq:5672"
           resources:

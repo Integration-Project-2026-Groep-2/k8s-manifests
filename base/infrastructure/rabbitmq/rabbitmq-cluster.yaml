@@ -39,6 +39,7 @@ spec:
   rabbitmq:
     # Additional configuration can be added here
     additionalConfig: |
+      management.load_definitions = /etc/rabbitmq/definitions.json
       # Enable management plugin
       management.tcp.port = 15672
 
@@ -72,6 +73,14 @@ spec:
                   secretKeyRef:
                     name: rabbitmq-secret
                     key: RABBITMQ_MANAGEMENT_PREFIX
+            volumeMounts:
+              - name: rabbitmq-definitions
+                mountPath: /etc/rabbitmq/definitions.json
+                subPath: definitions.json
+          volumes:
+            - name: rabbitmq-definitions
+              configMap:
+                name: rabbitmq-definitions
 
   # Affinity rules for pod distribution
   affinity:
