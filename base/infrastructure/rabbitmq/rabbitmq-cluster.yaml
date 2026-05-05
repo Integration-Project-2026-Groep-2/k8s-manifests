@@ -39,7 +39,6 @@ spec:
   rabbitmq:
     # Additional configuration can be added here
     additionalConfig: |
-      management.load_definitions = /etc/rabbitmq/definitions.json
       # Enable management plugin
       management.tcp.port = 15672
 
