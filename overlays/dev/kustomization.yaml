@@ -18,12 +18,21 @@ commonAnnotations:
   managed-by: argocd
 
 # ── Image tags ────────────────────────────────────────────────────────────────
-# Replace "latest" with "dev" on every image in the base.
-# Add one entry per service once you know the exact image name.
-#
-# images:
-#   - name: ghcr.io/integration-project-2026-groep-2/my-service
-#     newTag: dev
+images:
+  - name: ghcr.io/integration-project-2026-groep-2/controlroom
+    newTag: latest-dev
+  - name: ghcr.io/integration-project-2026-groep-2/frontend
+    newTag: latest-dev
+  - name: ghcr.io/integration-project-2026-groep-2/facturatie
+    newTag: latest-dev
+  - name: ghcr.io/integration-project-2026-groep-2/planning
+    newTag: latest-dev
+  - name: ghcr.io/integration-project-2026-groep-2/crm
+    newTag: latest-dev
+  - name: ghcr.io/integration-project-2026-groep-2/kassa
+    newTag: latest-dev
+  - name: ghcr.io/integration-project-2026-groep-2/mailing
+    newTag: latest-dev
 
 # ── Patches ───────────────────────────────────────────────────────────────────
 patches:
