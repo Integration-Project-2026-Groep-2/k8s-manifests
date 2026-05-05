@@ -28,6 +28,8 @@ spec:
           ports:
             - containerPort: 5432
           env:
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
@@ -66,12 +68,13 @@ spec:
             periodSeconds: 30
           volumeMounts:
             - name: planning-db-data
-              mountPath: /var/lib/postgresql/data
+              mountPath: /var/lib/postgresql
   volumeClaimTemplates:
     - metadata:
         name: planning-db-data
       spec:
         accessModes: ["ReadWriteOnce"]
+        storageClassName: hostpath
         resources:
           requests:
             storage: 10Gi
