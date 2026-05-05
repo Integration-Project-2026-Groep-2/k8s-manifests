@@ -27,7 +27,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: rabbitmq-secret
-                  key: RABBITMQ_USER
+                  key: CRM_RABBITMQ_USER
             - name: CRM_RABBITMQ_PASS
               valueFrom:
                 secretKeyRef:
