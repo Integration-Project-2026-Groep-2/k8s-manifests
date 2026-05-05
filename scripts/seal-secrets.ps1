@@ -222,8 +222,6 @@ foreach ($env in $envFiles) {
                 }
 
                 $fileRealmUsersLine = $hashLine.Trim()
-            } else {
-                throw "ELASTIC_PASSWORD is not a bcrypt hash and htpasswd is not available to generate one."
             }
 
             $fileRealmContent = "users=$fileRealmUsersLine`nusers_roles=superuser:elastic`n"
