@@ -29,6 +29,8 @@ spec:
               value: mailing-db
             - name: RABBITMQ_HOST
               value: rabbitmq
+            - name: RABBITMQ_AMQP_PORT
+              value: "5672"
             - name: RABBITMQ_DEFAULT_USER
               valueFrom:
                 secretKeyRef:
