@@ -272,7 +272,7 @@ foreach ($env in $envFiles) {
                 }
             }
 
-            $usersContent = $fileRealmLines -join "`n"
+            $usersContent = ($fileRealmLines | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) -join "`n"
             $rolesContent = "superuser:" + ($fileRealmUsers -join ',')
 
             Write-Output "Sealing '$envFile' as '$fileRealmSecretName' -> $fileRealmOutFile"
