@@ -16,7 +16,6 @@ spec:
         - key: KIBANA_ENCRYPTION_KEY
           path: xpack.encryptedSavedObjects.encryptionKey
   config:
-    xpack.security.enabled: true
     xpack.encryptedSavedObjects.encryptionKey: ${xpack.encryptedSavedObjects.encryptionKey}
   podTemplate:
     spec:
