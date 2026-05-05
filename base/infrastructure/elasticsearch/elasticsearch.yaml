@@ -2,6 +2,8 @@ apiVersion: elasticsearch.k8s.elastic.co/v1
 kind: Elasticsearch
 metadata:
   name: elasticsearch
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"  # Ensure secrets are applied before this resource
 spec:
   version: 8.13.0
   # Wire the elastic user password from the SealedSecret (bcrypt hash)
