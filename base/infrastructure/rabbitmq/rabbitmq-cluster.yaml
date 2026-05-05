@@ -90,26 +90,3 @@ spec:
 
   # Termination grace period
   terminationGracePeriodSeconds: 604800  # 7 days for graceful shutdown
-
----
-# Service for RabbitMQ AMQP and Management UI
-apiVersion: v1
-kind: Service
-metadata:
-  name: rabbitmq
-  namespace: integration-project-2026-groep-2
-  labels:
-    app: rabbitmq
-spec:
-  type: ClusterIP
-  selector:
-    app.kubernetes.io/name: rabbitmq
-  ports:
-  - name: amqp
-    port: 5672
-    targetPort: 5672
-    protocol: TCP
-  - name: management
-    port: 15672
-    targetPort: 15672
-    protocol: TCP
