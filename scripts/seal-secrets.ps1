@@ -114,7 +114,8 @@ foreach ($env in $envFiles) {
         $secretName = "${name}-secret"
     }
 
-    $sealedBaseName = $secretName
+    $targetSecretName = $secretName
+    $sealedBaseName = $targetSecretName
     if ($sealedBaseName -like '*-secret') {
         $sealedBaseName = $sealedBaseName -replace '-secret$', ''
     }
@@ -126,11 +127,12 @@ foreach ($env in $envFiles) {
         $outDir = $gatewaySecretsDir
     }
 
+    $safeTempName = $targetSecretName -replace '[^a-zA-Z0-9-]', '-'
     $outFile = Join-Path $outDir ("${sealedBaseName}-sealedsecret.yaml")
-    $tempFile = Join-Path $sealedDir ("temp-${name}-secret.yaml")
-    $sealedTemp = Join-Path $sealedDir ("temp-${name}-sealedsecret.yaml")
+    $tempFile = Join-Path $sealedDir ("temp-${name}-${safeTempName}.yaml")
+    $sealedTemp = Join-Path $sealedDir ("temp-${name}-${safeTempName}-sealedsecret.yaml")
 
-    Write-Output "Sealing '$envFile' as '$secretName' -> $outFile"
+    Write-Output "Sealing '$envFile' as '$targetSecretName' -> $outFile"
 
     try {
         # Prefer TLS files stored under gateway/secrets (cluster gateway certs)
@@ -146,7 +148,7 @@ foreach ($env in $envFiles) {
 
         if ((Test-Path $certFilePath) -and (Test-Path $keyFilePath)) {
             $kubectlArgs = @(
-                'create','secret','tls',$secretName,
+                'create','secret','tls',$targetSecretName,
                 "--cert=$certFilePath",
                 "--key=$keyFilePath",
                 "--namespace=$Namespace",
@@ -154,7 +156,7 @@ foreach ($env in $envFiles) {
             )
         } else {
             $kubectlArgs = @(
-                'create','secret','generic',$secretName,
+                'create','secret','generic',$targetSecretName,
                 "--from-env-file=$envFile",
                 "--namespace=$Namespace",
                 '--dry-run=client','-o','yaml'
@@ -182,6 +184,59 @@ foreach ($env in $envFiles) {
     } finally {
         Remove-Item -Path $tempFile -ErrorAction SilentlyContinue
         Remove-Item -Path $sealedTemp -ErrorAction SilentlyContinue
+    }
+
+    if ($name -eq 'elasticsearch') {
+        $fileRealmSecretName = 'elasticsearch-file-realm'
+        $fileRealmBaseName = 'elasticsearch-file-realm'
+        $fileRealmOutFile = Join-Path $sealedDir ("${fileRealmBaseName}-sealedsecret.yaml")
+        $fileRealmTempEnv = Join-Path $sealedDir ("temp-${name}-file-realm.env")
+        $fileRealmTemp = Join-Path $sealedDir ("temp-${name}-file-realm-secret.yaml")
+        $fileRealmSealedTemp = Join-Path $sealedDir ("temp-${name}-file-realm-sealedsecret.yaml")
+
+        $elasticPasswordMatch = [regex]::Match($envRaw, '^[ \t]*ELASTIC_PASSWORD[ \t]*=[ \t]*(.+)$','Multiline')
+        if (-not $elasticPasswordMatch.Success) {
+            Write-Warning "ELASTIC_PASSWORD not found in $envFile. Skipping $fileRealmSecretName."
+        } else {
+            $fileRealmUsers = $elasticPasswordMatch.Groups[1].Value.Trim()
+            $fileRealmContent = "users=$fileRealmUsers`nusers_roles=superuser:elastic`n"
+
+            Write-Output "Sealing '$envFile' as '$fileRealmSecretName' -> $fileRealmOutFile"
+
+            try {
+                Set-Content -Path $fileRealmTempEnv -Value $fileRealmContent -Encoding utf8
+
+                $kubectlArgs = @(
+                    'create','secret','generic',$fileRealmSecretName,
+                    "--from-env-file=$fileRealmTempEnv",
+                    "--namespace=$Namespace",
+                    '--dry-run=client','-o','yaml'
+                )
+                Invoke-Checked -FilePath kubectl -Arguments $kubectlArgs | Set-Content -Path $fileRealmTemp -Encoding utf8
+
+                $sealArgs = @('--format','yaml','--scope','cluster-wide')
+                if ($useCert) {
+                    $sealArgs += @('--cert',$certPath)
+                }
+
+                Get-Content -Path $fileRealmTemp -Raw | & kubeseal @sealArgs | Set-Content -Path $fileRealmSealedTemp -Encoding utf8
+                if ($LASTEXITCODE -ne 0) {
+                    throw "kubeseal failed for $envFile (file realm)"
+                }
+
+                # Remove explicit namespace lines so kustomize can inject dev/prod namespaces
+                Get-Content -Path $fileRealmSealedTemp | Where-Object { $_ -notmatch '^\s*namespace:\s*' } |
+                    Set-Content -Path $fileRealmOutFile -Encoding utf8
+
+                Write-Output "Wrote $fileRealmOutFile"
+            } catch {
+                Write-Error "Failed sealing ${envFile} (file realm): $($_)"
+            } finally {
+                Remove-Item -Path $fileRealmTempEnv -ErrorAction SilentlyContinue
+                Remove-Item -Path $fileRealmTemp -ErrorAction SilentlyContinue
+                Remove-Item -Path $fileRealmSealedTemp -ErrorAction SilentlyContinue
+            }
+        }
     }
 }
 
