@@ -1,0 +1,44 @@
+name: Update Dev Image
+
+on:
+  repository_dispatch:
+    types:
+      - update-dev-image   # Must match event-type in service repo
+
+jobs:
+  update-dev-image:
+    name: Update Dev Kustomize Overlay
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout k8s-manifests repo
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Kustomize
+        uses: imranismail/setup-kustomize@v2
+
+      - name: Update image tag in dev overlay
+        working-directory: overlays/dev
+        run: |
+          kustomize edit set image \
+            ${{ github.event.client_payload.image }}:${{ github.event.client_payload.tag }}
+
+      - name: Verify the change
+        run: |
+          echo "--- Updated kustomization.yaml ---"
+          cat overlays/dev/kustomization.yaml
+
+      - name: Commit and push updated overlay
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add overlays/dev/kustomization.yaml
+          git commit -m "chore(dev): update ${{ github.event.client_payload.service }} to ${{ github.event.client_payload.tag }} [skip ci]
+
+          Triggered by: ${{ github.event.client_payload.actor }}
+          Commit: ${{ github.event.client_payload.commit }}"
+          git push
