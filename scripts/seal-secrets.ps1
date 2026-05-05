@@ -129,6 +129,7 @@ foreach ($env in $envFiles) {
 
     $safeTempName = $targetSecretName -replace '[^a-zA-Z0-9-]', '-'
     $outFile = Join-Path $outDir ("${sealedBaseName}-sealedsecret.yaml")
+    $filteredEnvFile = Join-Path $sealedDir ("temp-${name}-${safeTempName}.env")
     $tempFile = Join-Path $sealedDir ("temp-${name}-${safeTempName}.yaml")
     $sealedTemp = Join-Path $sealedDir ("temp-${name}-${safeTempName}-sealedsecret.yaml")
 
@@ -155,9 +156,13 @@ foreach ($env in $envFiles) {
                 '--dry-run=client','-o','yaml'
             )
         } else {
+            # Exclude SECRET_NAME from the generated secret data.
+            $envLines = Get-Content -Path $envFile
+            $envLines | Where-Object { $_ -notmatch '^[ \t]*SECRET_NAME[ \t]*=' } |
+                Set-Content -Path $filteredEnvFile -Encoding utf8
             $kubectlArgs = @(
                 'create','secret','generic',$targetSecretName,
-                "--from-env-file=$envFile",
+                "--from-env-file=$filteredEnvFile",
                 "--namespace=$Namespace",
                 '--dry-run=client','-o','yaml'
             )
@@ -182,6 +187,7 @@ foreach ($env in $envFiles) {
     } catch {
         Write-Error "Failed sealing ${envFile}: $($_)"
     } finally {
+        Remove-Item -Path $filteredEnvFile -ErrorAction SilentlyContinue
         Remove-Item -Path $tempFile -ErrorAction SilentlyContinue
         Remove-Item -Path $sealedTemp -ErrorAction SilentlyContinue
     }
