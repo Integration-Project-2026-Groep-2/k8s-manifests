@@ -11,7 +11,7 @@ spec:
     name: elasticsearch              # ECK auto-wires connection
   # Inject encryption key into Kibana keystore from SealedSecret
   secureSettings:
-    - secretName: elastic-credentials
+    - secretName: elastic-secret
       entries:
         - key: KIBANA_ENCRYPTION_KEY
           path: xpack.encryptedSavedObjects.encryptionKey

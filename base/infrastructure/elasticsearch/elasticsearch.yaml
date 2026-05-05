@@ -9,12 +9,14 @@ spec:
   # Wire the elastic user password from the SealedSecret (bcrypt hash)
   auth:
     fileRealm:
-      - secretName: elastic-credentials
+      - secretName: elastic-secret
         entries:
           - key: ELASTIC_PASSWORD
             path: users                  # ECK expects htpasswd format here
     roles:
-      - secretName: elastic-credentials
+      - secretName: elastic-secret
+        entries:
+          - key: CONTROLROOM_ES_USER
   nodeSets:
     - name: default
       count: 1
