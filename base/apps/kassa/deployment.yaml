@@ -126,7 +126,7 @@ spec:
             - name: SYSTEM_NAME
               value: Kassa
             - name: ODOO_PORT
-              value: 8069
+              value: "8069"
             - name: ODOO_URL
               valueFrom:
                 secretKeyRef:
@@ -153,7 +153,7 @@ spec:
             - name: DB_HOST
               value: kassa-db
             - name: DB_PORT
-              value: 5432
+              value: "5432"
             - name: POSTGRES_DB
               value: kassa-db
             - name: USER
@@ -180,7 +180,7 @@ spec:
             - name: RABBIT_HOST
               value: rabbitmq
             - name: RABBIT_PORT
-              value: 5672
+              value: "5672"
             - name: RABBIT_USER
               valueFrom:
                 secretKeyRef:
