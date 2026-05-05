@@ -12,10 +12,10 @@ metadata:
     argocd.argoproj.io/sync-wave: "1"  # Sync before applications
 spec:
   # Number of RabbitMQ nodes
-  replicas: 3
+  replicas: 1
 
   # Image configuration
-  image: rabbitmq:4-management-alpine
+  image: rabbitmq:4-management
 
   # Service configuration
   service:
@@ -33,7 +33,7 @@ spec:
   # Persistence configuration
   persistence:
     storage: 5Gi
-    storageClassName: ""  # Use default storage class
+    storageClassName: hostpath
 
   # RabbitMQ configuration
   rabbitmq:
