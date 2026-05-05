@@ -278,8 +278,8 @@ foreach ($env in $envFiles) {
             Write-Output "Sealing '$envFile' as '$fileRealmSecretName' -> $fileRealmOutFile"
 
             try {
-                Set-Content -Path $fileRealmUsersFile -Value $usersContent -Encoding utf8
-                Set-Content -Path $fileRealmRolesFile -Value $rolesContent -Encoding utf8
+                [System.IO.File]::WriteAllText($fileRealmUsersFile, $usersContent, [System.Text.UTF8Encoding]::new($false))
+                [System.IO.File]::WriteAllText($fileRealmRolesFile, $rolesContent, [System.Text.UTF8Encoding]::new($false))
 
                 $kubectlArgs = @(
                     'create','secret','generic',$fileRealmSecretName,
