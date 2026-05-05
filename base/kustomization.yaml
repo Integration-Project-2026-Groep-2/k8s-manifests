@@ -13,6 +13,7 @@ resources:
   - apps/frontend/deployment.yaml
   - apps/kassa/deployment.yaml
   - apps/mailing/deployment.yaml
+  - apps/mailing/configmap.yaml
   - apps/planning/deployment.yaml
   - network-policies/default-deny.yaml
   - network-policies/policies.yaml
