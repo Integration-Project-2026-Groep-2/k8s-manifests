@@ -31,11 +31,15 @@ Before starting the Kubernetes cluster, ensure you have:
 
 ## Getting Started
 
-### Step 0: Setup Cluster using Kubeadm
+### Step 0: Setup Cluster using kubeadm
+
+#### Step 0.1 Setup Cluster using kubeadm
 
 ```bash
 sudo kubeadm init --pod-network-cidr=192.168.0.0/16 --apiserver-bind-port 6443 --control-plane-endpoint=example.com
 ```
+
+#### Step 0.2 Install CNI
 
 ### Step 1: Install Core Infrastructure Components
 
@@ -87,7 +91,7 @@ Install the NGINX Gateway Fabric controller and define the Gateway API resources
 # Install the NGINX Gateway Fabric controller with Helm
 helm install ngf oci://ghcr.io/nginx/charts/nginx-gateway-fabric \
   -n main-gateway --create-namespace \
-  -f gateway/gateway-controller-values.yaml
+  --set nginx.service.type=NodePort
 
 # Apply gateway resources (GatewayClass, Gateway, HTTPRoutes)
 kubectl apply -k gateway/
