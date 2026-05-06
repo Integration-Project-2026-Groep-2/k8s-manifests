@@ -1,16 +1,8 @@
 # NGINX Gateway Fabric Helm Chart Values
 # Exposes the gateway service on port 30097 (NodePort)
 
-nginx:
-  service:
-    type: NodePort
-    externalTrafficPolicy: Local
-    nodePorts:
-      - port: 30097
-        listenerPort: 443
-
+nginxGateway:
   replicas: 2
-  
   resources:
     requests:
       cpu: 100m
@@ -18,13 +10,11 @@ nginx:
     limits:
       cpu: 500m
       memory: 512Mi
-  
   autoscaling:
     enable: true
     minReplicas: 2
     maxReplicas: 5
     targetCPUUtilizationPercentage: 80
-  
   affinity:
     podAntiAffinity:
       preferredDuringSchedulingIgnoredDuringExecution:
@@ -37,3 +27,14 @@ nginx:
                   values:
                     - nginx-gateway-fabric
             topologyKey: kubernetes.io/hostname
+
+nginx:
+  pod:
+    hostNetwork: true
+    dnsPolicy: ClusterFirstWithHostNet
+  service:
+    type: NodePort
+    externalTrafficPolicy: Local
+    nodePorts:
+      - port: 30097
+        listenerPort: 443
