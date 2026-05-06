@@ -31,6 +31,12 @@ Before starting the Kubernetes cluster, ensure you have:
 
 ## Getting Started
 
+### Step 0: Setup Cluster using Kubeadm
+
+```bash
+sudo kubeadm init --pod-network-cidr=192.168.0.0/16 --apiserver-bind-port 6443 --control-plane-endpoint=example.com
+```
+
 ### Step 1: Install Core Infrastructure Components
 
 Install the required controllers and admission systems:
