@@ -1,7 +1,7 @@
 # NGINX Gateway Fabric Helm Chart Values
 # Exposes the gateway service on port 30097 (NodePort)
 
-nginxGateway:
+nginx:
   hostNetwork: true
   replicas: 2
   resources:
@@ -29,10 +29,9 @@ nginxGateway:
                     - nginx-gateway-fabric
             topologyKey: kubernetes.io/hostname
 
-nginx:
-  service:
-    type: NodePort
-    externalTrafficPolicy: Local
-    nodePorts:
-      - port: 30097
-        listenerPort: 443
+service:
+  type: NodePort
+  externalTrafficPolicy: Local
+  nodePorts:
+    - port: 30097
+      listenerPort: 443
