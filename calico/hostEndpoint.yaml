@@ -1,0 +1,15 @@
+apiVersion: projectcalico.org/v3
+kind: HostEndpoint
+metadata:
+  name: HV01-eth0
+  labels:
+    type: production
+spec:
+  interfaceName: eth0
+  node: HV01
+  expectedIPs:
+    - 10.10.1.4
+  ports:
+    - name: main-gateway
+      port: 30097
+      protocol: TCP
