@@ -1,46 +1,39 @@
 # NGINX Gateway Fabric Helm Chart Values
 # Exposes the gateway service on port 30097 (NodePort)
-# Configuration merged from deployment.yaml
 
-image:
-  repository: ghcr.io/nginxinc/nginx-gateway-fabric
-  tag: latest
-  pullPolicy: IfNotPresent
+nginx:
+  service:
+    type: NodePort
+    externalTrafficPolicy: Local
+    nodePorts:
+      - port: 30097
+        listenerPort: 443
 
-replicaCount: 2
-
-service:
-  type: NodePort
-  ports:
-    - port: 443
-      targetPort: 443
-      protocol: TCP
-      name: https
-      nodePort: 30097
-
-resources:
-  requests:
-    cpu: 100m
-    memory: 128Mi
-  limits:
-    cpu: 500m
-    memory: 512Mi
-
-autoscaling:
-  enabled: true
-  minReplicas: 2
-  maxReplicas: 5
-  targetCPUUtilizationPercentage: 80
-
-affinity:
-  podAntiAffinity:
-    preferredDuringSchedulingIgnoredDuringExecution:
-      - weight: 100
-        podAffinityTerm:
-          labelSelector:
-            matchExpressions:
-              - key: app.kubernetes.io/name
-                operator: In
-                values:
-                  - main-gateway
-          topologyKey: kubernetes.io/hostname
+  replicas: 2
+  
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  
+  autoscaling:
+    enable: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 80
+  
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values:
+                    - nginx-gateway-fabric
+            topologyKey: kubernetes.io/hostname
