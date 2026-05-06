@@ -181,30 +181,60 @@ kubectl port-forward -n headlamp svc/headlamp 3000:80
 
 ## Verification
 
-Verify that all components are running correctly:
+### 1. Check Gateway Controller and Resources
 
 ```bash
-# Check NGINX Gateway Fabric controller
+# Check NGINX Gateway Fabric controller pod is running
 kubectl get pods -n main-gateway -l app.kubernetes.io/name=nginx-gateway-fabric
 
-# Check Gateway and HTTPRoute resources
-kubectl get gatewayclass,gateway -n main-gateway
-kubectl get httproute -A
+# Check GatewayClass exists
+kubectl get gatewayclass
 
-# Check Argo CD
-kubectl get pods -n argocd
+# Check Gateway and verify it has an address assigned
+kubectl get gateway -n main-gateway -o wide
 
-# Check application namespaces and their services
-kubectl get namespaces -o name | Select-String integration-project
+# Check HTTPRoutes are created and accepted
+kubectl get httproute -A -o wide
+# Look for "Accepted" status in the output
+```
+
+### 2. Check Services and ReferenceGrants
+
+```bash
+# Verify backend services exist for routing
 kubectl get svc -n integration-project-2026-groep-2
 kubectl get svc -n integration-project-2026-groep-2-dev
+kubectl get svc -n argocd
 
-# Check if applications are syncing in Argo CD
+# Verify ReferenceGrant allows cross-namespace routing
+kubectl get referencegrant -A
+```
+
+### 3. Test Gateway Connectivity
+
+```bash
+# Check if the NodePort service is accessible
+kubectl get svc -n main-gateway
+# Note the external port for the "ngf-" service
+
+# Port-forward to test the gateway locally (optional)
+kubectl port-forward -n main-gateway svc/ngf 8443:443 &
+# Then test: curl -k https://localhost:8443 (should return 404 or gateway error, not connection refused)
+
+# Check Argo CD is accessible through the gateway
+kubectl port-forward svc/argocd-server -n argocd 8080:443
+# Then visit https://localhost:8080
+```
+
+### 4. Verify Argo CD Applications
+
+```bash
+# Check if applications are syncing
 kubectl get applications -A
 
-# View Argo CD UI (port forward)
-kubectl port-forward svc/argocd-server -n argocd 8080:443
-# Then visit https://localhost:8080 (ignore certificate warning)
+# Check workload deployments in both environments
+kubectl get deployment -n integration-project-2026-groep-2-prod
+kubectl get deployment -n integration-project-2026-groep-2-dev
 ```
 
 ## Current Architecture
@@ -319,12 +349,14 @@ kubectl get secrets -n integration-project-2026-groep-2
 - Check logs: `kubectl logs -n argocd -l app.kubernetes.io/name=argocd-server`
 
 **Gateway not routing traffic**
-- Verify HTTPRoutes are created: `kubectl get httproute -A`
+- Verify HTTPRoutes are created and **Accepted**: `kubectl describe httproute -A` (look for `Accepted: true`)
+- Verify Gateway has an address assigned: `kubectl describe gateway -n main-gateway` (look for `Status.Addresses`)
 - Check if HTTPRoute targets a service that exists: `kubectl get svc -n integration-project-2026-groep-2`
 - For cross-namespace routes (e.g., Argo CD), verify the ReferenceGrant exists: `kubectl get referencegrant -A`
+- Check what error the HTTPRoute is reporting: `kubectl describe httproute <name> -n <namespace>`
 - Check gateway controller logs: `kubectl logs -n main-gateway -l app.kubernetes.io/name=nginx-gateway-fabric`
-- Check gateway logs: `kubectl logs -n main-gateway -l app.kubernetes.io/name=nginx-gateway-fabric -c nginx-gateway`
-- Ensure NodePort 30097 is accessible and Cloudflare forwards traffic to it
+- Verify NodePort 30097 is open on the node and Cloudflare forwards traffic to it
+- Test connectivity to the gateway: `kubectl port-forward -n main-gateway svc/ngf 8443:443` then `curl -k https://localhost:8443`
 
 **Secrets not being injected into pods**
 - Verify `.env` files exist in `base/secrets/` locally
