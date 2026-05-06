@@ -6,7 +6,7 @@ metadata:
     type: production
 spec:
   interfaceName: eth0
-  node: HV01
+  node: hv01
   expectedIPs:
     - 10.10.1.4
   ports:
