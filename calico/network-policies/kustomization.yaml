@@ -4,4 +4,3 @@ kind: Kustomization
 
 resources:
   - allow-outbound-external.yaml
-  - 
