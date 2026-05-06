@@ -1,0 +1,48 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-gateway-traffic
+  namespace: main-gateway
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: nginx-gateway-fabric
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - port: 30097
+          protocol: TCP
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: integration-project-2026-groep-2
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: integration-project-2026-groep-2-dev
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: integration-project-2026-groep-2-prod
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: argocd
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: headlamp
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
