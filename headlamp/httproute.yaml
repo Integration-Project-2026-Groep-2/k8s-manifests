@@ -14,4 +14,4 @@ spec:
     - backendRefs:
         - name: headlamp
           namespace: headlamp
-          port: 443
+          port: 80
