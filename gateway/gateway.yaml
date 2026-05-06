@@ -9,7 +9,6 @@ spec:
     - name: https
       protocol: HTTPS
       port: 443
-      hostname: "*.integration-project-2026-groep-2.my.be"
       tls:
         mode: Terminate
         certificateRefs:
