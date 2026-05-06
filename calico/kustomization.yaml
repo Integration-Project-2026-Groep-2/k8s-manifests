@@ -3,4 +3,4 @@ kind: Kustomization
 
 resources:
   - hostEndpoint.yaml
-  - network-policies
+  - network-policies/
