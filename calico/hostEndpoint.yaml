@@ -1,7 +1,7 @@
 apiVersion: projectcalico.org/v3
 kind: HostEndpoint
 metadata:
-  name: HV01-eth0
+  name: hv01-eth0
   labels:
     type: production
 spec:
