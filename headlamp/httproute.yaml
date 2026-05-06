@@ -8,7 +8,7 @@ spec:
     - name: main-gateway
       sectionName: https
   hostnames:
-    - k8s.integration-project-2026-groep-2.my.be
+    - "k8s.integration-project-2026-groep-2.my.be"
   rules:
     - backendRefs:
         - name: headlamp

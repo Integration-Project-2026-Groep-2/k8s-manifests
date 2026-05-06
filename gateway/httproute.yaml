@@ -8,7 +8,7 @@ spec:
     - name: main-gateway
       sectionName: https
   hostnames:
-    - argocd.integration-project-2026-groep-2.my.be
+    - "argocd.integration-project-2026-groep-2.my.be"
   rules:
     - backendRefs:
         - name: argocd-server
