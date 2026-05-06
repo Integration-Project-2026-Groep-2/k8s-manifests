@@ -12,4 +12,5 @@ spec:
   rules:
     - backendRefs:
         - name: headlamp
+          namespace: headlamp
           port: 80
