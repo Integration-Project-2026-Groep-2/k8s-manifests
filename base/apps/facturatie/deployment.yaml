@@ -1,26 +1,26 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: billing-app
+  name: facturatie
   namespace: integration-project-2026-groep-2
   labels:
-    app: billing-app
+    app: facturatie
   annotations:
     argocd.argoproj.io/sync-wave: "3"  # Sync after databases and infrastructure
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: billing-app
+      app: facturatie
   template:
     metadata:
       labels:
         rabbitmq-client: "true"
-        app: billing-app
+        app: facturatie
     spec:
       securityContext: {}
       containers:
-        - name: billing-app
+        - name: facturatie
           image: ghcr.io/integration-project-2026-groep-2/facturatie:latest-dev
           ports:
             - containerPort: 80
@@ -75,14 +75,14 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: billing-app
+  name: facturatie
   namespace: integration-project-2026-groep-2
   labels:
-    app: billing-app
+    app: facturatie
 spec:
   type: ClusterIP
   selector:
-    app: billing-app
+    app: facturatie
   ports:
     - name: http
       port: 80
@@ -91,28 +91,28 @@ spec:
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: billing-db
+  name: facturatie-db
   namespace: integration-project-2026-groep-2
   labels:
-    app: billing-db
+    app: facturatie-db
   annotations:
     argocd.argoproj.io/sync-wave: "2"  # Sync before applications, after infrastructure
 spec:
-  serviceName: billing-db
+  serviceName: facturatie-db
   replicas: 1
   selector:
     matchLabels:
-      app: billing-db
+      app: facturatie-db
   template:
     metadata:
       labels:
-        app: billing-db
+        app: facturatie-db
     spec:
       securityContext:
         runAsUser: 999
         fsGroup: 999
       containers:
-        - name: billing-db
+        - name: facturatie-db
           image: mariadb:11.8
           ports:
             - containerPort: 3306
@@ -120,7 +120,7 @@ spec:
             - name: MARIADB_DATABASE
               valueFrom:
                 secretKeyRef:
-                  name: billing-secret
+                  name: facturatie-secret
                   key: BILLING_DB_NAME
             - name: MARIADB_USER
               valueFrom:
@@ -156,11 +156,11 @@ spec:
             initialDelaySeconds: 30
             periodSeconds: 30
           volumeMounts:
-            - name: billing-db-data
+            - name: facturatie-db-data
               mountPath: /var/lib/mysql
   volumeClaimTemplates:
     - metadata:
-        name: billing-db-data
+        name: facturatie-db-data
       spec:
         accessModes: ["ReadWriteOnce"]
         resources:
@@ -170,15 +170,15 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: billing-db
+  name: facturatie-db
   namespace: integration-project-2026-groep-2
   labels:
-    app: billing-db
+    app: facturatie-db
 spec:
   type: ClusterIP
   clusterIP: None   # Headless for StatefulSet DNS
   selector:
-    app: billing-db
+    app: facturatie-db
   ports:
     - port: 3306
       targetPort: 3306
