@@ -73,29 +73,31 @@ kubectl wait --for=condition=available --timeout=300s deployment/argocd-server -
 
 If your kubectl version does not support server-side apply, install Argo CD with Helm instead or apply the manifests in smaller chunks. The full install bundle includes large CRDs, and client-side `kubectl apply` can exceed the annotation size limit.
 
-#### 1.4 Install NGINX Gateway Fabric
+#### 1.4 Install NGINX Gateway Fabric and Gateway Resources
+
+Install the NGINX Gateway Fabric controller and define the Gateway API resources. The gateway runs in the `main-gateway` namespace on **NodePort 30097**.
 
 ```bash
+# Install the NGINX Gateway Fabric controller with Helm
 helm install ngf oci://ghcr.io/nginx/charts/nginx-gateway-fabric \
   -n main-gateway --create-namespace \
   -f gateway/gateway-controller-values.yaml
 
-# Verify it's running
-kubectl get pods -n main-gateway
-```
-
-#### 1.5 Apply the Gateway API resources
-
-The gateway objects in [gateway/kustomization.yaml](gateway/kustomization.yaml) are separate from the Helm release. They include the cluster-scoped `GatewayClass`, the namespaced `Gateway`, and the `HTTPRoute` definitions.
-
-```bash
+# Apply gateway resources (GatewayClass, Gateway, HTTPRoutes)
 kubectl apply -k gateway/
 
-# Verify the Gateway and routes exist
-kubectl get gatewayclass,gateway,httproute -A
+# Apply Argo CD resources (namespace, ReferenceGrant for cross-namespace routing, app-of-apps)
+kubectl apply -k argocd/
+
+# Verify the controller and gateway are running
+kubectl get pods -n main-gateway -l app.kubernetes.io/name=nginx-gateway-fabric
+kubectl get gatewayclass,gateway -n main-gateway
+kubectl get httproute -A
 ```
 
-#### 1.6 Install RabbitMQ Cluster Operator (recommended: kubectl)
+**Note:** The main gateway listens on HTTPS (port 30097) and terminates TLS using the Cloudflare Origin Certificate. HTTPRoutes in any namespace can reference backend Services in other namespaces if a `ReferenceGrant` permits it.
+
+#### 1.5 Install RabbitMQ Cluster Operator (recommended: kubectl)
 
 The repository provides a helper script to install the RabbitMQ Cluster Operator, or you can install it directly from the upstream manifest. We prefer the upstream manifest for a minimal, canonical install:
 
@@ -119,7 +121,7 @@ Notes:
 - The operator runs in the `rabbitmq-system` namespace and manages `RabbitmqCluster` CRs across namespaces (one operator can serve dev and prod clusters).
 - Installing `cert-manager` is optional; without it you must supply TLS secrets yourself or disable auto-TLS in the CR configuration.
 
-#### 1.7 Install ECK
+#### 1.6 Install ECK
 
 ```bash
 # Install the CRDs and the operator into its own namespace
@@ -149,36 +151,22 @@ Run [scripts/bootstrap-secrets.ps1](scripts/bootstrap-secrets.ps1) to create or 
 
 **Important:** `.env` files stay out of Git. Argo CD only reads the Kubernetes Secrets that already exist in the destination cluster.
 
-### Step 3: Deploy Platform Workloads
+### Step 3: Deploy Platform Workloads via Argo CD
 
-Deploy the base platform resources:
+Deploy the Argo CD Applications to sync workloads:
 
 ```bash
-# Deploy base resources (workloads, gateway, network policies, secrets)
+# Deploy the Argo CD Applications (dev and prod)
 kubectl apply -k .
 ```
 
-This command applies all resources from the base Kustomize configuration, including:
-- Namespaces
-- Workloads (apps, infrastructure)
-- Network policies
+This deploys the root Argo CD Applications:
+- [argocd/apps/app-dev.yaml](argocd/apps/app-dev.yaml) - Development environment workloads
+- [argocd/apps/app-prod.yaml](argocd/apps/app-prod.yaml) - Production environment workloads
 
-It does not create the application secrets. Those are created separately on the destination cluster from your local `.env` files.
+Argo CD then automatically syncs all workloads (apps, infrastructure, network policies) from the overlays/dev and overlays/prod Kustomize configurations.
 
-### Step 4: Bootstrap Argo CD
-
-Initialize Argo CD's App-of-Apps pattern:
-
-```bash
-# Bootstrap Argo CD with the app-of-apps entry point
-kubectl apply -k argocd/
-```
-
-This creates the `app-of-apps` Application which then automatically registers:
-- [argocd/apps/app-dev.yaml](argocd/apps/app-dev.yaml) - Development environment
-- [argocd/apps/app-prod.yaml](argocd/apps/app-prod.yaml) - Production environment
-
-### Step 5: (Optional) Install Headlamp
+### Step 4: (Optional) Install Headlamp
 
 For cluster visibility and management UI (standalone install, separate namespace):
 
@@ -196,14 +184,20 @@ kubectl port-forward -n headlamp svc/headlamp 3000:80
 Verify that all components are running correctly:
 
 ```bash
-# Check Gateway Fabric
-kubectl get pods -n nginx-gateway
+# Check NGINX Gateway Fabric controller
+kubectl get pods -n main-gateway -l app.kubernetes.io/name=nginx-gateway-fabric
+
+# Check Gateway and HTTPRoute resources
+kubectl get gatewayclass,gateway -n main-gateway
+kubectl get httproute -A
 
 # Check Argo CD
 kubectl get pods -n argocd
 
-# Check application namespaces
+# Check application namespaces and their services
 kubectl get namespaces -o name | Select-String integration-project
+kubectl get svc -n integration-project-2026-groep-2
+kubectl get svc -n integration-project-2026-groep-2-dev
 
 # Check if applications are syncing in Argo CD
 kubectl get applications -A
@@ -220,10 +214,14 @@ The shared platform resources live in [base/kustomization.yaml](base/kustomizati
 - Network policies
 - Destination-cluster secret bootstrap flow from local `.env` files
 
-The [gateway/kustomization.yaml](gateway/kustomization.yaml) bundle adds the gateway-specific resources:
-- Cluster-scoped `GatewayClass`
-- Namespaced `Gateway`
-- HTTPRoutes
+The [gateway/kustomization.yaml](gateway/kustomization.yaml) bundle adds the gateway-specific resources to the `main-gateway` namespace:
+- Cluster-scoped `GatewayClass` (nginx)
+- Namespaced `Gateway` (main-gateway) on port 30097
+- Base HTTPRoute for Argo CD (cross-namespace, with ReferenceGrant in argocd/)
+
+The environment overlays in [overlays/dev/kustomization.yaml](overlays/dev/kustomization.yaml) and [overlays/prod/kustomization.yaml](overlays/prod/kustomization.yaml) add environment-specific HTTPRoutes that route hostnames to backend Services:
+- `frontend`, `facturatie`, `kassa`, `mailing`, `planning`, `controlroom`, `crm` in `integration-project-2026-groep-2` (base) namespace
+- HTTPRoutes use the same hostnames and targets in both dev and prod, but prefixed for dev (e.g., `dev-kassa.integration-project-2026-groep-2.my.be` → `kassa` service)
 
 The [overlays/dev/kustomization.yaml](overlays/dev/kustomization.yaml) and [overlays/prod/kustomization.yaml](overlays/prod/kustomization.yaml) layers add environment-specific:
 - Namespace setup
@@ -254,18 +252,39 @@ Secrets are managed on the destination cluster from local `base/secrets/.env.*` 
 
 ## Networking
 
-The gateway controller exposes the platform on **NodePort 30097**:
+### Single Gateway Entry Point
 
-- **Cloudflare**: Routes inbound web traffic to port 30097
-- **Kubernetes Gateway**: Terminates TLS using the Cloudflare Origin Certificate
-- **Architecture**: Cloudflare (HTTPS) → K8s Gateway on port 30097 (HTTPS with origin cert) → Apps
-- **Headlamp**: Installed separately in the `headlamp` namespace (manual `kubectl apply -k headlamp`)
+The platform uses a **single NGINX Gateway** (`main-gateway` in the `main-gateway` namespace) on **NodePort 30097**:
 
-The gateway API objects are installed separately from Helm:
+- **External traffic**: Cloudflare routes HTTPS traffic to NodePort 30097
+- **TLS termination**: Gateway terminates TLS using the Cloudflare Origin Certificate
+- **HTTPRoutes**: Define hostname-to-service routing rules
+  - **Same-namespace routes**: Apps in `integration-project-2026-groep-2` (e.g., `frontend`, `kassa`) are routed via HTTPRoutes in the overlay namespaces
+  - **Cross-namespace routes**: Argo CD (in `argocd` namespace) is routed via a base HTTPRoute in `gateway/` + a `ReferenceGrant` in `argocd/` to permit the Gateway to reach the service
 
-1. Install the Gateway API CRDs
-2. Install the NGINX Gateway Fabric controller with Helm
-3. Apply [gateway/kustomization.yaml](gateway/kustomization.yaml) to create the `GatewayClass`, `Gateway`, and `HTTPRoute` objects
+**Architecture**:
+```
+Cloudflare (HTTPS) → NodePort 30097 → main-gateway (main-gateway NS) → HTTPRoutes → Backend Services
+```
+
+### Gateway API Resources
+
+The gateway API objects are installed in two steps:
+
+1. **Base gateway resources** (from `kubectl apply -k gateway/`):
+   - `GatewayClass` (nginx) — Controller reference
+   - `Gateway` (main-gateway/main-gateway) — HTTPS listener on port 30097
+   - `HTTPRoute` (argocd-route) — Routes `argocd.integration-project-2026-groep-2.my.be` to `argocd-server` (cross-namespace, requires ReferenceGrant)
+
+2. **Environment-specific HTTPRoutes** (from `kubectl apply -k overlays/prod/` or `overlays/dev/`):
+   - Routes for `frontend`, `facturatie`, `kassa`, `mailing`, `planning`, `controlroom`, `crm`
+   - Dev routes are prefixed (e.g., `dev-kassa.integration-project-2026-groep-2.my.be`)
+
+### Headlamp UI
+
+Headlamp is installed separately in the `headlamp` namespace:
+- Routed via HTTPRoute `headlamp-route` on hostname `k8s.integration-project-2026-groep-2.my.be`
+- Install with: `kubectl apply -k headlamp`
 
 ## Troubleshooting
 
@@ -275,8 +294,15 @@ The gateway API objects are installed separately from Helm:
 # All core components
 kubectl get pods --all-namespaces
 
-# Gateway Fabric status
-kubectl get gatewayclass,gateway,httproute
+# Gateway Fabric controller
+kubectl get pods -n main-gateway
+
+# Gateway API resources
+kubectl get gatewayclass,gateway -n main-gateway
+kubectl get httproute -A
+
+# ReferenceGrants for cross-namespace routing
+kubectl get referencegrant -A
 
 # Argo CD applications
 kubectl get applications -A
@@ -293,9 +319,12 @@ kubectl get secrets -n integration-project-2026-groep-2
 - Check logs: `kubectl logs -n argocd -l app.kubernetes.io/name=argocd-server`
 
 **Gateway not routing traffic**
-- Verify HTTPRoutes are created: `kubectl get httproutes -A`
-- Check gateway controller logs: `kubectl logs -n nginx-gateway -l app=nginx-gateway`
-- Ensure NodePort 30097 is accessible
+- Verify HTTPRoutes are created: `kubectl get httproute -A`
+- Check if HTTPRoute targets a service that exists: `kubectl get svc -n integration-project-2026-groep-2`
+- For cross-namespace routes (e.g., Argo CD), verify the ReferenceGrant exists: `kubectl get referencegrant -A`
+- Check gateway controller logs: `kubectl logs -n main-gateway -l app.kubernetes.io/name=nginx-gateway-fabric`
+- Check gateway logs: `kubectl logs -n main-gateway -l app.kubernetes.io/name=nginx-gateway-fabric -c nginx-gateway`
+- Ensure NodePort 30097 is accessible and Cloudflare forwards traffic to it
 
 **Secrets not being injected into pods**
 - Verify `.env` files exist in `base/secrets/` locally

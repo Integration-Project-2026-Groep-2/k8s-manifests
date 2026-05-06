@@ -206,7 +206,7 @@ spec:
 
 ---
 # ─── Apps exposed through Gateway ────────────────────────────────────────────
-# Allow the Gateway controller to reach frontend, kassa, billing, mailing, controlroom, planning
+# Allow the Gateway controller to reach the public app pods behind HTTPRoutes.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -218,14 +218,13 @@ spec:
       - key: app
         operator: In
         values:
-          - frontend-drupal
-          - billing-app
-          - mailing-app
+          - frontend
+          - facturatie
+          - mailing
           - kassa
           - controlroom
           - planning
           - crm
-          - headlamp
   policyTypes:
     - Ingress
   ingress:

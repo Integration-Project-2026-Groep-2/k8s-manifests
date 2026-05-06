@@ -59,7 +59,7 @@ spec:
     - facturatie.integration-project-2026-groep-2.my.be
   rules:
     - backendRefs:
-        - name: billing-app
+        - name: facturatie
           port: 80
 
 ---

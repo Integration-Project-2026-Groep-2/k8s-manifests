@@ -7,7 +7,7 @@ namespace: integration-project-2026-groep-2
 resources:
   - namespace.yaml
   - infrastructure/
-  - apps/billing/deployment.yaml
+  - apps/facturatie/deployment.yaml
   - apps/controlroom/deployment.yaml
   - apps/crm/deployment.yaml
   - apps/frontend/deployment.yaml

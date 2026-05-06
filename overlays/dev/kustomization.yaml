@@ -57,4 +57,4 @@ patches:
             memory: "256Mi"
     target:
       kind: Deployment
-      labelSelector: app in (frontend,billing-app,crm,controlroom,kassa,mailing)
+      labelSelector: app in (frontend,facturatie,crm,controlroom,kassa,mailing,planning)
