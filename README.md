@@ -39,7 +39,23 @@ Before starting the Kubernetes cluster, ensure you have:
 sudo kubeadm init --pod-network-cidr=192.168.0.0/16 --apiserver-bind-port 6443 --control-plane-endpoint=example.com
 ```
 
-#### Step 0.2 Install CNI
+#### Step 0.2 Untaint the Control-Plane node
+
+```bash
+kubectl taint nodes --all node-role.kubernetes.io/control-plane-
+```
+
+#### Step 0.3 Install CNI
+
+Install Cilium using CiliumCLI
+
+```bash
+cilium install --set kubeProxyReplacement=truecilium install --
+```
+
+#### Step 0.4 Install Prometheus
+
+Easiest is to install [Kube-Prometheus](https://prometheus-operator.dev/docs/getting-started/installation/#install-using-kube-prometheus)
 
 ### Step 1: Install Core Infrastructure Components
 
