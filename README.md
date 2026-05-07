@@ -135,8 +135,8 @@ Notes:
 
 ```bash
 # Install the CRDs and the operator into its own namespace
-kubectl create -f https://download.elastic.co/downloads/eck/2.13.0/crds.yaml
-kubectl apply -f https://download.elastic.co/downloads/eck/2.13.0/operator.ya
+kubectl create -f https://download.elastic.co/downloads/eck/3.4.0/crds.yaml
+kubectl apply -f https://download.elastic.co/downloads/eck/3.4.0/operator.yaml
 ```
 
 ### Step 2: Configure Secrets
