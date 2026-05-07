@@ -50,7 +50,7 @@ kubectl taint nodes --all node-role.kubernetes.io/control-plane-
 Install Cilium using CiliumCLI
 
 ```bash
-cilium install --set kubeProxyReplacement=true
+cilium install --set kubeProxyReplacement=true --set devices=eth+
 ```
 
 #### Step 0.4 Install Prometheus
