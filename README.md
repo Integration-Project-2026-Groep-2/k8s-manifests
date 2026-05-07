@@ -48,7 +48,7 @@ Install the required controllers and admission systems:
 #### 1.1 Install Gateway API CRDs
 
 ```bash
-kubectl kustomize "https://github.com/nginx/nginx-gateway-fabric/config/crd/gateway-api/standard?ref=v2.5.1" | kubectl apply -f -
+kubectl kustomize "https://github.com/nginx/nginx-gateway-fabric/config/crd/gateway-api/standard?ref=v2.6.0" | kubectl apply -f -
 ```
 
 #### 1.2 Install Sealed Secrets Controller (Helm preferred)
