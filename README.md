@@ -107,7 +107,7 @@ Install the NGINX Gateway Fabric controller and define the Gateway API resources
 # Install the NGINX Gateway Fabric controller with Helm
 helm install ngf oci://ghcr.io/nginx/charts/nginx-gateway-fabric \
   -n nginx-gateway --create-namespace \
-  --set controller.hostNetwork=true \
+  --set ExternalTrafficPolicy=Cluster \
   --set nginx.service.type=NodePort 
 
 # Apply gateway resources (GatewayClass, Gateway, HTTPRoutes)
