@@ -5,6 +5,7 @@ metadata:
   namespace: nginx-gateway
 spec:
   gatewayClassName: nginx
+  externalTrafficPolicy: Cluster
   listeners:
     - name: https
       protocol: HTTPS
