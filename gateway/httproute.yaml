@@ -10,7 +10,7 @@ spec:
       namespace: nginx-gateway
       sectionName: https
   hostnames:
-    - "argocd"
+    - "argocd.integration-project-2026-groep-2.my.be"
   rules:
     - backendRefs:
         - name: argocd-server
