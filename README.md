@@ -47,10 +47,10 @@ kubectl taint nodes --all node-role.kubernetes.io/control-plane-
 
 #### Step 0.3 Install CNI
 
-Install Cilium using CiliumCLI
+Install Flannel as CNI
 
 ```bash
-cilium install --set kubeProxyReplacement=true --set devices=eth+
+kubectl apply -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
 ```
 
 #### Step 0.4 Install Prometheus
