@@ -19,6 +19,12 @@ spec:
           protocol: TCP
   egress:
     - to:
+        - ipBlock:
+            cidr: 10.96.0.1/32
+      ports:
+        - port: 443
+          protocol: TCP
+    - to:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: integration-project-2026-groep-2
