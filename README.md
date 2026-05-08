@@ -107,8 +107,9 @@ Install the NGINX Gateway Fabric controller and define the Gateway API resources
 # Install the NGINX Gateway Fabric controller with Helm
 helm install ngf oci://ghcr.io/nginx/charts/nginx-gateway-fabric \
   -n main-gateway --create-namespace \
-  --set controlPlane.hostNetwork=true \
-  --set nginx.service.type=NodePort
+  --set controller.hostNetwork=true \
+  --set nginx.service.type=NodePort \
+  --set-json 'nginx.service.nodePorts=[{"port":30097,"listenerPort":443}]'
 
 # Apply gateway resources (GatewayClass, Gateway, HTTPRoutes)
 kubectl apply -k gateway/
