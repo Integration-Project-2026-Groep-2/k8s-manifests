@@ -7,7 +7,7 @@ metadata:
 spec:
   parentRefs:
     - name: main-gateway
-      namespace: main-gateway
+      namespace: nginx-gateway
       sectionName: https
   hostnames:
     - "argocd.integration-project-2026-groep-2.my.be"
