@@ -240,6 +240,8 @@ kind: PersistentVolumeClaim
 metadata:
   name: kassa-odoo-data
   namespace: integration-project-2026-groep-2
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"  # Sync after databases and infrastructure
 spec:
   accessModes: ["ReadWriteOnce"]
   storageClassName: local-path
