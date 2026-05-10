@@ -16,3 +16,9 @@ spec:
         - name: argocd-server
           namespace: argocd
           port: 80
+      filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            set:
+              - name: "x-forwarded-proto"
+                value: "https"
