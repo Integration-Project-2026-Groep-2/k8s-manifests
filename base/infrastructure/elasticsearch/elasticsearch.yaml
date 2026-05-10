@@ -5,7 +5,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "1"  # Ensure secrets are applied before this resource
 spec:
-  version: 8.13.0
+  version: 8.19.15
   # Wire the elastic user password from the SealedSecret (bcrypt hash)
   auth:
     fileRealm:
