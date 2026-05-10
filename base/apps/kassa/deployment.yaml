@@ -90,7 +90,6 @@ metadata:
     app: kassa-db
 spec:
   type: ClusterIP
-  clusterIP: None
   selector:
     app: kassa-db
   ports:
