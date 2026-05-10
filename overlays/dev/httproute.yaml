@@ -120,7 +120,7 @@ spec:
       namespace: nginx-gateway
       sectionName: https
   hostnames:
-    - "dev-controlroom.integration-project-2026-groep-2.my.be"
+    - "dev-control-room.integration-project-2026-groep-2.my.be"
   rules:
     - backendRefs:
         - name: kibana-kb-http
