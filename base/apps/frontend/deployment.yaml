@@ -87,7 +87,6 @@ metadata:
     app: frontend-db
 spec:
   type: ClusterIP
-  clusterIP: None
   selector:
     app: frontend-db
   ports:
@@ -123,6 +122,8 @@ spec:
           ports:
             - containerPort: 80
           env:
+            - name: APACHE_SERVER_NAME
+              value: "frontend"
             - name: DRUPAL_DB_HOST
               value: frontend-db
             - name: DRUPAL_DB_NAME

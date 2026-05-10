@@ -176,7 +176,6 @@ metadata:
     app: facturatie-db
 spec:
   type: ClusterIP
-  clusterIP: None   # Headless for StatefulSet DNS
   selector:
     app: facturatie-db
   ports:

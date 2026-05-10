@@ -88,7 +88,6 @@ metadata:
     app: planning-db
 spec:
   type: ClusterIP
-  clusterIP: None
   selector:
     app: planning-db
   ports:
