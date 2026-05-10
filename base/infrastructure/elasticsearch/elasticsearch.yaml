@@ -16,6 +16,7 @@ spec:
       config:
         node.store.allow_mmap: false
         xpack.security.enabled: true
+        xpack.security.reserved_realm.enabled: true
         
       podTemplate:
         spec:
