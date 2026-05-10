@@ -33,7 +33,7 @@ spec:
   # Persistence configuration
   persistence:
     storage: 5Gi
-    storageClassName: hostpath
+    storageClassName: local-path
 
   # RabbitMQ configuration
   rabbitmq:

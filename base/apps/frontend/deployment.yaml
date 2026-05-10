@@ -196,7 +196,7 @@ metadata:
   namespace: integration-project-2026-groep-2
 spec:
   accessModes: ["ReadWriteOnce"]
-  storageClassName: hostpath
+  storageClassName: local-path
   resources:
     requests:
       storage: 2Gi
@@ -208,7 +208,7 @@ metadata:
   namespace: integration-project-2026-groep-2
 spec:
   accessModes: ["ReadWriteOnce"]
-  storageClassName: hostpath
+  storageClassName: local-path
   resources:
     requests:
       storage: 2Gi
@@ -220,7 +220,7 @@ metadata:
   namespace: integration-project-2026-groep-2
 spec:
   accessModes: ["ReadWriteOnce"]
-  storageClassName: hostpath
+  storageClassName: local-path
   resources:
     requests:
       storage: 5Gi
