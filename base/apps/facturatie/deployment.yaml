@@ -26,7 +26,7 @@ spec:
             - containerPort: 80
           env:
             - name: DB_HOST
-              value: billing-db
+              value: facturatie-db
             - name: RABBITMQ_HOST
               value: rabbitmq
             - name: RABBITMQ_USER
@@ -42,17 +42,17 @@ spec:
             - name: DB_NAME
               valueFrom:
                 secretKeyRef:
-                  name: billing-secret
+                  name: facturatie-secret
                   key: BILLING_DB_NAME
             - name: DB_USER
               valueFrom:
                 secretKeyRef:
-                  name: billing-secret
+                  name: facturatie-secret
                   key: BILLING_DB_USER
             - name: DB_PASS
               valueFrom:
                 secretKeyRef:
-                  name: billing-secret
+                  name: facturatie-secret
                   key: BILLING_DB_PASS
           resources:
             requests:
@@ -125,17 +125,17 @@ spec:
             - name: MARIADB_USER
               valueFrom:
                 secretKeyRef:
-                  name: billing-secret
+                  name: facturatie-secret
                   key: BILLING_DB_USER
             - name: MARIADB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: billing-secret
+                  name: facturatie-secret
                   key: BILLING_DB_PASS
             - name: MARIADB_ROOT_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: billing-secret
+                  name: facturatie-secret
                   key: BILLING_DB_ROOT_PASS
           resources:
             requests:
