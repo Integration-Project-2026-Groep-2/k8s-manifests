@@ -7,6 +7,10 @@ metadata:
 spec:
   version: 8.13.0
   count: 1
+  http:
+    tls:
+      selfSignedCertificate:
+        disabled: true
   elasticsearchRef:
     name: elasticsearch              # ECK auto-wires connection
   # Inject encryption key into Kibana keystore from SealedSecret
