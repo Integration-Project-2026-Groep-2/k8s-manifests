@@ -147,12 +147,12 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: rabbitmq-secret
-                  key: RABBITMQ_USER
+                  key: FRONTEND_RABBITMQ_USER
             - name: RABBITMQ_PASS
               valueFrom:
                 secretKeyRef:
                   name: rabbitmq-secret
-                  key: RABBITMQ_PASS
+                  key: FRONTEND_RABBITMQ_PASS
           resources:
             requests:
               cpu: "200m"
