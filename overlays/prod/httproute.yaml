@@ -10,7 +10,7 @@ metadata:
 spec:
   parentRefs:
     - name: main-gateway
-      namespace: main-gateway
+      namespace: nginx-gateway
       sectionName: https
   hostnames:
     - "integration-project-2026-groep-2.my.be"
@@ -31,7 +31,7 @@ metadata:
 spec:
   parentRefs:
     - name: main-gateway
-      namespace: main-gateway
+      namespace: nginx-gateway
       sectionName: https
   hostnames:
     - "rabbitmq.integration-project-2026-groep-2.my.be"
@@ -53,7 +53,7 @@ metadata:
 spec:
   parentRefs:
     - name: main-gateway
-      namespace: main-gateway
+      namespace: nginx-gateway
       sectionName: https
   hostnames:
     - "facturatie.integration-project-2026-groep-2.my.be"
@@ -75,7 +75,7 @@ metadata:
 spec:
   parentRefs:
     - name: main-gateway
-      namespace: main-gateway
+      namespace: nginx-gateway
       sectionName: https
   hostnames:
     - "kassa.integration-project-2026-groep-2.my.be"
@@ -97,7 +97,7 @@ metadata:
 spec:
   parentRefs:
     - name: main-gateway
-      namespace: main-gateway
+      namespace: nginx-gateway
       sectionName: https
   hostnames:
     - "mailing.integration-project-2026-groep-2.my.be"
@@ -117,7 +117,7 @@ metadata:
 spec:
   parentRefs:
     - name: main-gateway
-      namespace: main-gateway
+      namespace: nginx-gateway
       sectionName: https
   hostnames:
     - "controlroom.integration-project-2026-groep-2.my.be"
@@ -135,7 +135,7 @@ metadata:
 spec:
   parentRefs:
     - name: main-gateway
-      namespace: main-gateway
+      namespace: nginx-gateway
       sectionName: https
   hostnames:
     - "planning.integration-project-2026-groep-2.my.be"
