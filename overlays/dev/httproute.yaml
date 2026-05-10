@@ -125,6 +125,23 @@ spec:
     - backendRefs:
         - name: kibana-kb-http
           port: 5601
+---
+# ─── HTTPRoute: Kibana TLS Policy ─────────────────────────────────────────────
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: BackendTLSPolicy
+metadata:
+  name: kibana-tls-policy
+spec:
+  targetRefs:
+    - group: ""
+      kind: Service
+      name: kibana-kb-http
+  validation:
+    caCertificateRefs:
+      - group: ""
+        kind: Secret
+        name: kibana-kb-http-ca-internal
+    hostname: kibana-kb-http.default.svc.cluster.local
 
 ---
 # ─── HTTPRoute: Planning ──────────────────────────────────────────────────────
