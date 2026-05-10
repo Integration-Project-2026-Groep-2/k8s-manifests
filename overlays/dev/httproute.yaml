@@ -122,7 +122,13 @@ spec:
   hostnames:
     - "dev-control-room.integration-project-2026-groep-2.my.be"
   rules:
-    - backendRefs:
+    - filters:
+      - type: RequestHeaderModifier
+        requestHeaderModifier:
+          set:
+            - name: x-found-cluster
+              value: "http://elasticsearch-es-http:9200"
+      backendRefs:
         - name: kibana-kb-http
           port: 5601
 
