@@ -139,7 +139,6 @@ spec:
   validation:
     caCertificateRefs:
       - group: ""
-        kind: Secret
         name: kibana-kb-http-ca-internal
     hostname: kibana-kb-http.default.svc.cluster.local
 
