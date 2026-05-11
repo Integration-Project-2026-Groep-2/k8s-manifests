@@ -89,7 +89,7 @@ bcrypt_hash() {
     echo "htpasswd not found in PATH. Install apache2-utils (Debian/Ubuntu) or httpd-tools (RHEL)." >&2
     exit 2
   fi
-  htpasswd -nbB "$username" "$password" | tr -d '\r'
+  htpasswd -nbB -C 10 "$username" "$password" | tr -d '\r'
 }
 
 # Inject the ECK label into a plain Kubernetes Secret YAML so that the
