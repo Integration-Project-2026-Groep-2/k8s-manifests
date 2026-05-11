@@ -12,10 +12,6 @@ spec:
   selector:
     matchLabels:
       app: controlroom
-  http:
-    tls:
-      selfSignedCertificate:
-        disabled: true
   template:
     metadata:
       labels:
