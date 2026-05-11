@@ -78,7 +78,7 @@ get_env_value() {
 
 # Returns 0 (true) when the argument is a valid bcrypt hash ($2b/2a/2y + cost + 53-char hash).
 is_bcrypt_hash() {
-  [[ "$1" =~ ^\$2[aby]\$[0-9]{2}\$.{53}$ ]]
+  [[ "$1" =~ ^\$2[aby]?\$[0-9]{2}\$.{53}$ ]]
 }
 
 # Bcrypt-hash a plaintext password; exits if htpasswd is unavailable.
@@ -89,7 +89,7 @@ bcrypt_hash() {
     echo "htpasswd not found in PATH. Install apache2-utils (Debian/Ubuntu) or httpd-tools (RHEL)." >&2
     exit 2
   fi
-  htpasswd -nbB -C 10 "$username" "$password" | tr -d '\r'
+  htpasswd -nbB "$username" "$password" | tr -d '\r'
 }
 
 # Inject the ECK label into a plain Kubernetes Secret YAML so that the
@@ -258,7 +258,7 @@ for env_file in "${env_files[@]}"; do
 
       if [[ "$key" == *_ES_USER ]]; then
         prefix="${key%_ES_USER}"
-        user_name="${value##[[:space:]]}"
+        user_name="${value//[[:space:]]/}"
         pass_key="${prefix}_ES_PASS"
         roles_key="${prefix}_ES_ROLES"
 
