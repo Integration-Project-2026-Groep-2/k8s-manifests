@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Seals all env files in base/secrets into SealedSecret manifests in base/secrets.
-# Requires: kubectl, kubeseal
+# Requires: kubectl, kubeseal, docker
 # Usage: ./scripts/seal-secrets.sh [namespace]
 # Always fetches the controller cert and strips namespace fields so Kustomize can set them.
 
@@ -25,12 +25,16 @@ if ! command -v kubeseal >/dev/null 2>&1; then
   exit 2
 fi
 
-# htpasswd is only needed when a plaintext password must be bcrypt-hashed.
-# We check here once so the script fails early rather than mid-loop.
-_htpasswd_available=false
-if command -v htpasswd >/dev/null 2>&1; then
-  _htpasswd_available=true
+if ! command -v docker >/dev/null 2>&1; then
+  echo "docker not found in PATH. Required for bcrypt hashing via elasticsearch-users." >&2
+  exit 2
 fi
+
+# ES image used for bcrypt hashing. Override with ES_VERSION=x.y.z to match your cluster.
+_es_image="docker.elastic.co/elasticsearch/elasticsearch:${ES_VERSION:-8.17.0}"
+echo "Using ES image for hashing: $_es_image"
+# Pre-pull once so per-user docker runs are instant and we fail early on bad versions.
+docker pull --quiet "$_es_image" >/dev/null
 
 mkdir -p "$sealed_dir"
 
@@ -70,10 +74,23 @@ fi
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 # Read a single key=value from an env file, preserving values that contain '='.
+# Surrounding single or double quotes are stripped from the returned value so
+# that quoted env files (e.g. KEY="value" or KEY='value') do not embed the
+# quote characters into bcrypt hashes, causing password-mismatch auth failures.
 get_env_value() {
   local file="$1"
   local key="$2"
-  awk -F= -v k="$key" 'BEGIN{found=0} $1==k{print substr($0, index($0,$2)); found=1} END{if(!found) exit 1}' "$file" 2>/dev/null
+  awk -F= -v k="$key" '
+    BEGIN { found = 0 }
+    $1 == k {
+      val = substr($0, index($0, $2))
+      if      (val ~ /^".*"$/)   val = substr(val, 2, length(val) - 2)
+      else if (val ~ /^'"'"'.*'"'"'$/) val = substr(val, 2, length(val) - 2)
+      print val
+      found = 1
+    }
+    END { if (!found) exit 1 }
+  ' "$file" 2>/dev/null
 }
 
 # Returns 0 (true) when the argument is a valid bcrypt hash ($2b/2a/2y + cost + 53-char hash).
@@ -81,15 +98,22 @@ is_bcrypt_hash() {
   [[ "$1" =~ ^\$2[aby]?\$[0-9]{2}\$.{53}$ ]]
 }
 
-# Bcrypt-hash a plaintext password; exits if htpasswd is unavailable.
+# Bcrypt-hash a plaintext password using elasticsearch-users inside a temporary
+# ES container. This guarantees the hash format ($2a$, cost 10) is identical to
+# what ECK writes natively, eliminating any htpasswd variant/cost mismatches.
+# Passwords and usernames are passed via environment variables to avoid any
+# shell-escaping issues with special characters.
 bcrypt_hash() {
   local username="$1"
   local password="$2"
-  if [[ "$_htpasswd_available" != true ]]; then
-    echo "htpasswd not found in PATH. Install apache2-utils (Debian/Ubuntu) or httpd-tools (RHEL)." >&2
-    exit 2
-  fi
-  htpasswd -nbB "$username" "$password" | tr -d '\r'
+  docker run --rm \
+    -e ES_HASH_USER="$username" \
+    -e ES_HASH_PASS="$password" \
+    "$_es_image" \
+    bash -c '
+      /usr/share/elasticsearch/bin/elasticsearch-users useradd "$ES_HASH_USER" -p "$ES_HASH_PASS" 2>/dev/null
+      grep "^${ES_HASH_USER}:" /usr/share/elasticsearch/config/users
+    '
 }
 
 # Inject the ECK label into a plain Kubernetes Secret YAML so that the
@@ -318,6 +342,16 @@ for env_file in "${env_files[@]}"; do
     echo "        fileRealm:"
     echo "          - secretName: ${file_realm_name}"
     echo ""
+
+    # In debug mode, print the plaintext users/roles files before cleanup so
+    # you can verify hashes without needing to decode the sealed secret.
+    if [[ "${DEBUG_REALM:-}" == "1" ]]; then
+      echo "── DEBUG: users file ────────────────────────────────────────────────"
+      cat "$users_file"
+      echo "── DEBUG: users_roles file ──────────────────────────────────────────"
+      cat "$roles_file"
+      echo "─────────────────────────────────────────────────────────────────────"
+    fi
 
     # Clean up (also covered by the trap above).
     rm -f "$users_file" "$roles_file" "$realm_temp" "$realm_sealed"
