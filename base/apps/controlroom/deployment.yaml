@@ -38,10 +38,10 @@ spec:
                 secretKeyRef:
                   name: rabbitmq-secret
                   key: RABBITMQ_VHOST
-            - name: RABBITMQ_URL
-              value: "amqp://$(RABBITMQ_USER):$(RABBITMQ_PASS)@rabbitmq:5672/"
             - name: RABBITMQ_HOST
               value: rabbitmq
+            - name: RABBITMQ_URL
+              value: "amqp://$(RABBITMQ_USER):$(RABBITMQ_PASS)@$(RABBITMQ_HOST):5672/"
             - name: ELASTICSEARCH_URL
               value: "https://elasticsearch-es-http:9200"
             - name: CONTROLROOM_ES_USER
