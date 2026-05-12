@@ -36,13 +36,13 @@ spec:
             - name: KIBANA_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: elasticsearch-secret
-                  key: KIBANA_USERNAME
+                  name: kibana-system-basic-auth
+                  key: username
             - name: KIBANA_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: elasticsearch-secret
-                  key: KIBANA_PASSWORD
+                  name: kibana-system-basic-auth
+                  key: password
             - name: PORT_KIBANA
               valueFrom:
                 secretKeyRef:

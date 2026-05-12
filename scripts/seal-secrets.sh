@@ -5,6 +5,7 @@ set -euo pipefail
 # Requires: kubectl, kubeseal, docker
 # Usage: ./scripts/seal-secrets.sh [namespace]
 # Always fetches the controller cert and strips namespace fields so Kustomize can set them.
+# Elasticsearch users are emitted as individual kubernetes.io/basic-auth secrets.
 
 NAMESPACE="${1:-integration-project-2026-groep-2}"
 
@@ -24,17 +25,6 @@ if ! command -v kubeseal >/dev/null 2>&1; then
   echo "kubeseal not found in PATH" >&2
   exit 2
 fi
-
-if ! command -v docker >/dev/null 2>&1; then
-  echo "docker not found in PATH. Required for bcrypt hashing via elasticsearch-users." >&2
-  exit 2
-fi
-
-# ES image used for bcrypt hashing. Override with ES_VERSION=x.y.z to match your cluster.
-_es_image="docker.elastic.co/elasticsearch/elasticsearch:${ES_VERSION:-8.17.0}"
-echo "Using ES image for hashing: $_es_image"
-# Pre-pull once so per-user docker runs are instant and we fail early on bad versions.
-docker pull --quiet "$_es_image" >/dev/null
 
 mkdir -p "$sealed_dir"
 
@@ -73,10 +63,62 @@ fi
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+sanitize_secret_name() {
+  printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9-' '-'
+}
+
+seal_temp_secret() {
+  local temp_file="$1"
+  local out_file="$2"
+  local temp_name="$3"
+  local sealed_temp="$sealed_dir/temp-${temp_name}-sealedsecret.yaml"
+
+  seal_args=(--format yaml --scope cluster-wide)
+  if [[ "$use_cert" == true ]]; then
+    seal_args+=(--cert "$cert_path")
+  fi
+
+  kubeseal "${seal_args[@]}" < "$temp_file" > "$sealed_temp"
+  grep -vE '^[[:space:]]*namespace:[[:space:]]*' "$sealed_temp" > "$out_file"
+  rm -f "$sealed_temp"
+}
+
+emit_basic_auth_secret() {
+  local secret_name="$1"
+  local username="$2"
+  local password="$3"
+  local roles="${4:-}"
+  local temp_name="${secret_name//[^a-zA-Z0-9-]/-}"
+  local temp_file="$sealed_dir/temp-${temp_name}.yaml"
+  local out_file="$sealed_dir/${secret_name}-sealedsecret.yaml"
+
+  echo "Sealing basic-auth user '$username' -> $out_file"
+
+  if [[ -n "$roles" ]]; then
+    kubectl create secret generic "$secret_name" \
+      --type=kubernetes.io/basic-auth \
+      --from-literal=username="$username" \
+      --from-literal=password="$password" \
+      --from-literal=roles="$roles" \
+      --namespace="$NAMESPACE" \
+      --dry-run=client -o yaml > "$temp_file"
+  else
+    kubectl create secret generic "$secret_name" \
+      --type=kubernetes.io/basic-auth \
+      --from-literal=username="$username" \
+      --from-literal=password="$password" \
+      --namespace="$NAMESPACE" \
+      --dry-run=client -o yaml > "$temp_file"
+  fi
+
+  seal_temp_secret "$temp_file" "$out_file" "$temp_name"
+  echo "Wrote $out_file"
+  rm -f "$temp_file"
+}
+
 # Read a single key=value from an env file, preserving values that contain '='.
 # Surrounding single or double quotes are stripped from the returned value so
-# that quoted env files (e.g. KEY="value" or KEY='value') do not embed the
-# quote characters into bcrypt hashes, causing password-mismatch auth failures.
+# quoted env values do not keep the wrapping quotes.
 get_env_value() {
   local file="$1"
   local key="$2"
@@ -91,58 +133,6 @@ get_env_value() {
     }
     END { if (!found) exit 1 }
   ' "$file" 2>/dev/null
-}
-
-# Returns 0 (true) when the argument is a valid bcrypt hash ($2b/2a/2y + cost + 53-char hash).
-is_bcrypt_hash() {
-  [[ "$1" =~ ^\$2[aby]?\$[0-9]{2}\$.{53}$ ]]
-}
-
-# Bcrypt-hash a plaintext password using elasticsearch-users inside a temporary
-# ES container. This guarantees the hash format ($2a$, cost 10) is identical to
-# what ECK writes natively, eliminating any htpasswd variant/cost mismatches.
-# Passwords and usernames are passed via environment variables to avoid any
-# shell-escaping issues with special characters.
-bcrypt_hash() {
-  local username="$1"
-  local password="$2"
-  docker run --rm \
-    -e ES_HASH_USER="$username" \
-    -e ES_HASH_PASS="$password" \
-    "$_es_image" \
-    bash -c '
-      /usr/share/elasticsearch/bin/elasticsearch-users useradd "$ES_HASH_USER" -p "$ES_HASH_PASS" 2>/dev/null
-      grep "^${ES_HASH_USER}:" /usr/share/elasticsearch/config/users
-    '
-}
-
-# Inject the ECK label into a plain Kubernetes Secret YAML so that the
-# resulting SealedSecret carries the label for easier cluster-side discovery.
-# Requires python3 + PyYAML; silently skipped when unavailable.
-inject_eck_label() {
-  local file="$1"
-  if ! command -v python3 >/dev/null 2>&1; then
-    return 0
-  fi
-  python3 - "$file" <<'PYEOF'
-import sys, os
-try:
-    import yaml
-except ImportError:
-    sys.exit(0)
-
-path = sys.argv[1]
-with open(path) as fh:
-    doc = yaml.safe_load(fh)
-
-doc.setdefault("metadata", {}).setdefault("labels", {})
-doc["metadata"]["labels"]["common.k8s.elastic.co/type"] = "elasticsearch"
-
-tmp = path + ".ecklabeled"
-with open(tmp, "w") as fh:
-    yaml.dump(doc, fh, default_flow_style=False)
-os.replace(tmp, path)
-PYEOF
 }
 
 # ── Main loop ─────────────────────────────────────────────────────────────────
@@ -180,7 +170,6 @@ for env_file in "${env_files[@]}"; do
   out_file="$out_dir/${sealed_base_name}-sealedsecret.yaml"
   filtered_env="$sealed_dir/temp-${name}-${safe_temp_name}.env"
   temp_file="$sealed_dir/temp-${name}-${safe_temp_name}.yaml"
-  sealed_temp="$sealed_dir/temp-${name}-${safe_temp_name}-sealedsecret.yaml"
 
   echo "Sealing '$env_file' as '$secret_name' -> $out_file"
 
@@ -198,86 +187,34 @@ for env_file in "${env_files[@]}"; do
       --namespace="$NAMESPACE" \
       --dry-run=client -o yaml > "$temp_file"
   else
-    grep -vE '^[[:space:]]*SECRET_NAME[[:space:]]*=' "$env_file" > "$filtered_env"
+    if [[ "$name" == "elasticsearch" ]]; then
+      grep -vE '^[[:space:]]*(SECRET_NAME|FILE_REALM_SECRET_NAME|ELASTIC_PASSWORD|KIBANA_USERNAME|KIBANA_PASSWORD|[A-Z0-9_]+_ES_USER|[A-Z0-9_]+_ES_PASS|[A-Z0-9_]+_ES_ROLES)[[:space:]]*=' "$env_file" > "$filtered_env"
+    else
+      grep -vE '^[[:space:]]*SECRET_NAME[[:space:]]*=' "$env_file" > "$filtered_env"
+    fi
+
     kubectl create secret generic "$secret_name" \
       --from-env-file="$filtered_env" \
       --namespace="$NAMESPACE" \
       --dry-run=client -o yaml > "$temp_file"
   fi
 
-  seal_args=(--format yaml --scope cluster-wide)
-  if [[ "$use_cert" == true ]]; then
-    seal_args+=(--cert "$cert_path")
-  fi
-
-  kubeseal "${seal_args[@]}" < "$temp_file" > "$sealed_temp"
-
-  grep -vE '^[[:space:]]*namespace:[[:space:]]*' "$sealed_temp" > "$out_file"
+  seal_temp_secret "$temp_file" "$out_file" "$safe_temp_name"
   echo "Wrote $out_file"
 
-  rm -f "$filtered_env" "$temp_file" "$sealed_temp"
+  rm -f "$filtered_env" "$temp_file"
 
-  # ── ECK file-realm bootstrap (only for the elasticsearch env file) ──────────
   if [[ "$name" == "elasticsearch" ]]; then
-
-    # Allow overriding the secret name from the env file.
-    if file_realm_name=$(get_env_value "$env_file" "FILE_REALM_SECRET_NAME" 2>/dev/null); then
-      file_realm_name="${file_realm_name//[[:space:]]/}"
-    else
-      file_realm_name="elasticsearch-file-realm"
+    if kibana_username=$(get_env_value "$env_file" "KIBANA_USERNAME" 2>/dev/null); then
+      if kibana_password=$(get_env_value "$env_file" "KIBANA_PASSWORD" 2>/dev/null); then
+        emit_basic_auth_secret "kibana-system-basic-auth" "$kibana_username" "$kibana_password"
+      else
+        echo "Warning: KIBANA_PASSWORD not found in $env_file. Skipping kibana-system-basic-auth." >&2
+      fi
     fi
 
-    file_realm_base="${file_realm_name%-secret}"
-    file_realm_out="$sealed_dir/${file_realm_base}-sealedsecret.yaml"
-
-    users_file="$sealed_dir/temp-${name}-file-realm-users.txt"
-    roles_file="$sealed_dir/temp-${name}-file-realm-roles.txt"
-    realm_temp="$sealed_dir/temp-${name}-file-realm-secret.yaml"
-    realm_sealed="$sealed_dir/temp-${name}-file-realm-sealedsecret.yaml"
-
-    # Ensure temp files are always cleaned up even on error.
-    trap 'rm -f "$users_file" "$roles_file" "$realm_temp" "$realm_sealed"' RETURN
-
-    if ! elastic_password=$(get_env_value "$env_file" "ELASTIC_PASSWORD" 2>/dev/null); then
-      echo "Warning: ELASTIC_PASSWORD not found in $env_file. Skipping $file_realm_name." >&2
-      continue
-    fi
-
-    # ── Build users file ───────────────────────────────────────────────────────
-    users_lines=()
-
-    if is_bcrypt_hash "$elastic_password"; then
-      users_lines+=("elastic:${elastic_password}")
-    else
-      users_lines+=("$(bcrypt_hash "elastic" "$elastic_password")")
-    fi
-
-    # ── Build roles map (role -> comma-separated list of usernames) ────────────
-    # We represent the map as a flat array of "role:userlist" strings and
-    # update it with a helper so we stay compatible with bash 3 (macOS).
-    roles_entries=()
-
-    # Append a username to an existing role entry, or create a new one.
-    roles_add_user() {
-      local role="$1"
-      local user="$2"
-      local i
-      for (( i = 0; i < ${#roles_entries[@]}; i++ )); do
-        if [[ "${roles_entries[$i]%%:*}" == "$role" ]]; then
-          roles_entries[$i]="${roles_entries[$i]},${user}"
-          return
-        fi
-      done
-      roles_entries+=("${role}:${user}")
-    }
-
-    # The built-in elastic user is always a superuser.
-    roles_add_user "superuser" "elastic"
-
-    # ── Additional users ───────────────────────────────────────────────────────
     while IFS='=' read -r key value; do
       key="${key//[[:space:]]/}"
-      # Skip blank lines, comments, and keys without a value.
       [[ -z "$key" || "$key" == \#* ]] && continue
 
       if [[ "$key" == *_ES_USER ]]; then
@@ -285,77 +222,22 @@ for env_file in "${env_files[@]}"; do
         user_name="${value//[[:space:]]/}"
         pass_key="${prefix}_ES_PASS"
         roles_key="${prefix}_ES_ROLES"
+        user_secret_name="$(sanitize_secret_name "$user_name")-basic-auth"
 
         if ! user_pass=$(get_env_value "$env_file" "$pass_key" 2>/dev/null); then
           echo "Warning: $pass_key not found for user '$user_name'. Skipping." >&2
           continue
         fi
 
-        # Hash password if it is not already a bcrypt hash.
-        if is_bcrypt_hash "$user_pass"; then
-          users_lines+=("${user_name}:${user_pass}")
-        else
-          users_lines+=("$(bcrypt_hash "$user_name" "$user_pass")")
-        fi
-
-        # Resolve roles; default to superuser when the key is absent.
         if user_roles_raw=$(get_env_value "$env_file" "$roles_key" 2>/dev/null); then
           user_roles="${user_roles_raw//[[:space:]]/}"
         else
-          user_roles="superuser"
+          user_roles=""
         fi
 
-        # Iterate over the comma-separated role list.
-        IFS=',' read -ra role_list <<< "$user_roles"
-        for role in "${role_list[@]}"; do
-          role="${role//[[:space:]]/}"
-          [[ -z "$role" ]] && continue
-          roles_add_user "$role" "$user_name"
-        done
+        emit_basic_auth_secret "$user_secret_name" "$user_name" "$user_pass" "$user_roles"
       fi
     done < <(grep -vE '^[[:space:]]*#' "$env_file")
-
-    # ── Write users and users_roles files ─────────────────────────────────────
-    printf "%s\n" "${users_lines[@]}" > "$users_file"
-
-    # ECK requires one line per role: "role_name:user1,user2"
-    printf "%s\n" "${roles_entries[@]}" > "$roles_file"
-
-    # ── Create the raw Kubernetes Secret and inject the ECK label ─────────────
-    kubectl create secret generic "$file_realm_name" \
-      --from-file=users="$users_file" \
-      --from-file=users_roles="$roles_file" \
-      --namespace="$NAMESPACE" \
-      --dry-run=client -o yaml > "$realm_temp"
-
-    inject_eck_label "$realm_temp"
-
-    # ── Seal and strip namespace ───────────────────────────────────────────────
-    kubeseal "${seal_args[@]}" < "$realm_temp" > "$realm_sealed"
-    grep -vE '^[[:space:]]*namespace:[[:space:]]*' "$realm_sealed" > "$file_realm_out"
-
-    echo "Wrote $file_realm_out"
-    echo ""
-    echo "  Remember to reference this secret in your Elasticsearch CRD:"
-    echo "    spec:"
-    echo "      auth:"
-    echo "        fileRealm:"
-    echo "          - secretName: ${file_realm_name}"
-    echo ""
-
-    # In debug mode, print the plaintext users/roles files before cleanup so
-    # you can verify hashes without needing to decode the sealed secret.
-    if [[ "${DEBUG_REALM:-}" == "1" ]]; then
-      echo "── DEBUG: users file ────────────────────────────────────────────────"
-      cat "$users_file"
-      echo "── DEBUG: users_roles file ──────────────────────────────────────────"
-      cat "$roles_file"
-      echo "─────────────────────────────────────────────────────────────────────"
-    fi
-
-    # Clean up (also covered by the trap above).
-    rm -f "$users_file" "$roles_file" "$realm_temp" "$realm_sealed"
-    trap - RETURN
   fi
 
 done

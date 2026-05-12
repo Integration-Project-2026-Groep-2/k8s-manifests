@@ -49,6 +49,15 @@ Use the local `.env` files to create Kubernetes Secrets on the destination clust
 
 If you prefer manual commands, create each Secret with `kubectl create secret generic ... --from-env-file=...` and apply it directly to the destination namespace.
 
+## Elasticsearch auth
+
+The Elasticsearch `.env` file is split into two kinds of secrets:
+
+* `elasticsearch-secret` for shared config like `ELASTICSEARCH_URL`, `PORT_ELASTICSEARCH`, `PORT_KIBANA`, and `KIBANA_ENCRYPTION_KEY`
+* per-user `kubernetes.io/basic-auth` secrets such as `kibana-system-basic-auth` and `svc-controlroom-basic-auth`
+
+The Elasticsearch CR references these basic-auth secrets through `spec.auth.fileRealm` so ECK can aggregate them automatically.
+
 ## Adding a new service
 
 1. Create `.env.NEWSERVICE` file with required variables

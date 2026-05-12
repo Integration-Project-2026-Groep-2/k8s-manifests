@@ -47,13 +47,13 @@ spec:
             - name: CONTROLROOM_ES_USER
               valueFrom:
                 secretKeyRef:
-                  name: elasticsearch-secret
-                  key: CONTROLROOM_ES_USER
+                  name: svc-controlroom-basic-auth
+                  key: username
             - name: CONTROLROOM_ES_PASS
               valueFrom:
                 secretKeyRef:
-                  name: elasticsearch-secret
-                  key: CONTROLROOM_ES_PASS
+                  name: svc-controlroom-basic-auth
+                  key: password
           resources:
             requests:
               cpu: "100m"

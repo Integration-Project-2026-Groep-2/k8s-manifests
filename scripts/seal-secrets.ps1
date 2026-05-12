@@ -6,19 +6,9 @@ Always fetches the controller cert and strips namespace fields so Kustomize can 
 
 Examples:
   .env.billing              -> billing-sealedsecret.yaml (billing-secret)
-  .env.htpasswd-facturatie  -> htpasswd-facturatie-sealedsecret.yaml (htpasswd-facturatie-secret)
-  .env.htpasswd-kassa       -> htpasswd-kassa-sealedsecret.yaml (htpasswd-kassa-secret)
-  .env.htpasswd-mailing     -> htpasswd-mailing-sealedsecret.yaml (htpasswd-mailing-secret)
+  .env.elasticsearch        -> elasticsearch-sealedsecret.yaml (shared config only)
 
-For htpasswd authentication secrets, create .env files with:
-  .env.htpasswd-<service>
-  
-Format the content as a single line base64-encoded htpasswd file:
-  auth=<base64-encoded-htpasswd>
-
-Or use the format (which kubectl will handle):
-  HTPASSWD_DATA=user1:hashed_password1
-  HTPASSWD_DATA=user2:hashed_password2
+Elasticsearch users are emitted as individual kubernetes.io/basic-auth secrets.
 #>
 param(
     [string]$Namespace = "integration-project-2026-groep-2"
@@ -37,6 +27,83 @@ function Invoke-Checked {
     if ($LASTEXITCODE -ne 0) {
         throw "Command failed: $FilePath $($Arguments -join ' ')"
     }
+}
+
+function ConvertTo-SecretName {
+    param(
+        [string]$Value
+    )
+
+    return ($Value.ToLowerInvariant() -replace '[^a-z0-9-]', '-').Trim('-')
+}
+
+function Invoke-SealTempSecret {
+    param(
+        [string]$TempFile,
+        [string]$OutFile,
+        [string]$CertPath,
+        [bool]$UseCert,
+        [string]$TempPrefix
+    )
+
+    $sealedTemp = Join-Path $sealedDir "temp-$TempPrefix-sealedsecret.yaml"
+    $sealArgs = @('--format', 'yaml', '--scope', 'cluster-wide')
+    if ($UseCert) {
+        $sealArgs += @('--cert', $CertPath)
+    }
+
+    Get-Content -Path $TempFile -Raw | & kubeseal @sealArgs | Set-Content -Path $sealedTemp -Encoding utf8
+    if ($LASTEXITCODE -ne 0) {
+        throw "kubeseal failed for $OutFile"
+    }
+
+    Get-Content -Path $sealedTemp | Where-Object { $_ -notmatch '^\s*namespace:\s*' } |
+        Set-Content -Path $OutFile -Encoding utf8
+
+    Remove-Item -Path $sealedTemp -ErrorAction SilentlyContinue
+}
+
+function Write-BasicAuthSecret {
+    param(
+        [string]$SecretName,
+        [string]$UserName,
+        [string]$Password,
+        [string]$CertPath,
+        [bool]$UseCert,
+        [string]$Roles
+    )
+
+    $tempPrefix = $SecretName -replace '[^a-zA-Z0-9-]', '-'
+    $tempFile = Join-Path $sealedDir "temp-$tempPrefix.yaml"
+    $outFile = Join-Path $sealedDir "${SecretName}-sealedsecret.yaml"
+
+    Write-Output "Sealing basic-auth user '$UserName' -> $outFile"
+
+    $kubectlArgs = @(
+        'create', 'secret', 'generic', $SecretName,
+        '--type=kubernetes.io/basic-auth',
+        "--from-literal=username=$UserName",
+        "--from-literal=password=$Password",
+        "--namespace=$Namespace",
+        '--dry-run=client', '-o', 'yaml'
+    )
+
+    if ($Roles) {
+        $kubectlArgs = @(
+            'create', 'secret', 'generic', $SecretName,
+            '--type=kubernetes.io/basic-auth',
+            "--from-literal=username=$UserName",
+            "--from-literal=password=$Password",
+            "--from-literal=roles=$Roles",
+            "--namespace=$Namespace",
+            '--dry-run=client', '-o', 'yaml'
+        )
+    }
+
+    Invoke-Checked -FilePath kubectl -Arguments $kubectlArgs | Set-Content -Path $tempFile -Encoding utf8
+    Invoke-SealTempSecret -TempFile $tempFile -OutFile $outFile -CertPath $CertPath -UseCert:$UseCert -TempPrefix $tempPrefix
+    Remove-Item -Path $tempFile -ErrorAction SilentlyContinue
+    Write-Output "Wrote $outFile"
 }
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
@@ -131,7 +198,6 @@ foreach ($env in $envFiles) {
     $outFile = Join-Path $outDir ("${sealedBaseName}-sealedsecret.yaml")
     $filteredEnvFile = Join-Path $sealedDir ("temp-${name}-${safeTempName}.env")
     $tempFile = Join-Path $sealedDir ("temp-${name}-${safeTempName}.yaml")
-    $sealedTemp = Join-Path $sealedDir ("temp-${name}-${safeTempName}-sealedsecret.yaml")
 
     Write-Output "Sealing '$envFile' as '$targetSecretName' -> $outFile"
 
@@ -156,10 +222,18 @@ foreach ($env in $envFiles) {
                 '--dry-run=client','-o','yaml'
             )
         } else {
-            # Exclude SECRET_NAME from the generated secret data.
-            $envLines = Get-Content -Path $envFile
-            $envLines | Where-Object { $_ -notmatch '^[ \t]*SECRET_NAME[ \t]*=' } |
-                Set-Content -Path $filteredEnvFile -Encoding utf8
+            # Exclude auth-related values from the shared Elasticsearch config secret.
+            if ($name -eq 'elasticsearch') {
+                $envLines = Get-Content -Path $envFile
+                $envLines | Where-Object {
+                    $_ -notmatch '^[ \t]*(SECRET_NAME|FILE_REALM_SECRET_NAME|ELASTIC_PASSWORD|KIBANA_USERNAME|KIBANA_PASSWORD|[A-Z0-9_]+_ES_USER|[A-Z0-9_]+_ES_PASS|[A-Z0-9_]+_ES_ROLES)[ \t]*='
+                } | Set-Content -Path $filteredEnvFile -Encoding utf8
+            } else {
+                $envLines = Get-Content -Path $envFile
+                $envLines | Where-Object { $_ -notmatch '^[ \t]*SECRET_NAME[ \t]*=' } |
+                    Set-Content -Path $filteredEnvFile -Encoding utf8
+            }
+
             $kubectlArgs = @(
                 'create','secret','generic',$targetSecretName,
                 "--from-env-file=$filteredEnvFile",
@@ -167,21 +241,9 @@ foreach ($env in $envFiles) {
                 '--dry-run=client','-o','yaml'
             )
         }
+
         Invoke-Checked -FilePath kubectl -Arguments $kubectlArgs | Set-Content -Path $tempFile -Encoding utf8
-
-        $sealArgs = @('--format','yaml','--scope','cluster-wide')
-        if ($useCert) {
-            $sealArgs += @('--cert',$certPath)
-        }
-
-        Get-Content -Path $tempFile -Raw | & kubeseal @sealArgs | Set-Content -Path $sealedTemp -Encoding utf8
-        if ($LASTEXITCODE -ne 0) {
-            throw "kubeseal failed for $envFile"
-        }
-
-        # Remove explicit namespace lines so kustomize can inject dev/prod namespaces
-        Get-Content -Path $sealedTemp | Where-Object { $_ -notmatch '^\s*namespace:\s*' } |
-            Set-Content -Path $outFile -Encoding utf8
+        Invoke-SealTempSecret -TempFile $tempFile -OutFile $outFile -CertPath $certPath -UseCert:$useCert -TempPrefix $safeTempName
 
         Write-Output "Wrote $outFile"
     } catch {
@@ -189,129 +251,37 @@ foreach ($env in $envFiles) {
     } finally {
         Remove-Item -Path $filteredEnvFile -ErrorAction SilentlyContinue
         Remove-Item -Path $tempFile -ErrorAction SilentlyContinue
-        Remove-Item -Path $sealedTemp -ErrorAction SilentlyContinue
     }
 
     if ($name -eq 'elasticsearch') {
-        $fileRealmSecretName = 'elasticsearch-file-realm'
-        $fileRealmBaseName = 'elasticsearch-file-realm'
-        $fileRealmOutFile = Join-Path $sealedDir ("${fileRealmBaseName}-sealedsecret.yaml")
-        $fileRealmUsersFile = Join-Path $sealedDir ("temp-${name}-file-realm-users.txt")
-        $fileRealmRolesFile = Join-Path $sealedDir ("temp-${name}-file-realm-roles.txt")
-        $fileRealmTemp = Join-Path $sealedDir ("temp-${name}-file-realm-secret.yaml")
-        $fileRealmSealedTemp = Join-Path $sealedDir ("temp-${name}-file-realm-sealedsecret.yaml")
+        $envMap = @{}
+        foreach ($line in ($envRaw -split "`r?`n")) {
+            if ($line -match '^[ \t]*([^=\s]+)[ \t]*=[ \t]*(.+)$') {
+                $envMap[$matches[1]] = $matches[2].Trim()
+            }
+        }
 
-        $elasticPasswordMatch = [regex]::Match($envRaw, '^[ \t]*ELASTIC_PASSWORD[ \t]*=[ \t]*(.+)$','Multiline')
-        if (-not $elasticPasswordMatch.Success) {
-            Write-Warning "ELASTIC_PASSWORD not found in $envFile. Skipping $fileRealmSecretName."
+        if ($envMap.ContainsKey('KIBANA_USERNAME') -and $envMap.ContainsKey('KIBANA_PASSWORD')) {
+            Write-BasicAuthSecret -SecretName 'kibana-system-basic-auth' -UserName $envMap['KIBANA_USERNAME'] -Password $envMap['KIBANA_PASSWORD'] -CertPath $certPath -UseCert:$useCert
         } else {
-            $elasticPassword = $elasticPasswordMatch.Groups[1].Value.Trim()
-            $fileRealmUsersLine = $null
+            Write-Warning "KIBANA_USERNAME or KIBANA_PASSWORD not found in $envFile. Skipping kibana-system-basic-auth."
+        }
 
-            if ($elasticPassword -match '^\$2[aby]\$') {
-                $fileRealmUsersLine = "elastic:$elasticPassword"
-            } else {
-                $hashLine = $null
-                if (Get-Command htpasswd -ErrorAction SilentlyContinue) {
-                    $hashLine = & htpasswd -nbB elastic $elasticPassword
-                } elseif (Get-Command wsl -ErrorAction SilentlyContinue) {
-                    $hashLine = & wsl -e htpasswd -nbB elastic $elasticPassword
-                }
-
-                if (-not $hashLine -or $LASTEXITCODE -ne 0) {
-                    throw "htpasswd failed generating bcrypt hash for elastic. Install htpasswd or use WSL with apache2-utils."
-                }
-
-                $fileRealmUsersLine = $hashLine.Trim()
-            }
-
-            function Get-FileRealmLine {
-                param(
-                    [string]$UserName,
-                    [string]$Password
-                )
-
-                if ($Password -match '^\$2[aby]\$') {
-                    return "${UserName}:$Password"
-                }
-
-                $hashLine = $null
-                if (Get-Command htpasswd -ErrorAction SilentlyContinue) {
-                    $hashLine = & htpasswd -nbB $UserName $Password
-                } elseif (Get-Command wsl -ErrorAction SilentlyContinue) {
-                    $hashLine = & wsl -e htpasswd -nbB $UserName $Password
-                }
-
-                if (-not $hashLine -or $LASTEXITCODE -ne 0) {
-                    throw "htpasswd failed generating bcrypt hash for $UserName."
-                }
-
-                return $hashLine.Trim()
-            }
-
-            $fileRealmLines = @($fileRealmUsersLine)
-            $fileRealmUsers = @('elastic')
-
-            $envLines = $envRaw -split "`r?`n"
-            $envMap = @{}
-            foreach ($line in $envLines) {
-                if ($line -match '^[ \t]*([^=\s]+)[ \t]*=[ \t]*(.+)$') {
-                    $envMap[$matches[1]] = $matches[2].Trim()
-                }
-            }
-
-            foreach ($key in $envMap.Keys) {
-                if ($key -like '*_ES_USER') {
-                    $userName = $envMap[$key]
-                    $passKey = $key -replace '_ES_USER$', '_ES_PASS'
-                    if ($envMap.ContainsKey($passKey)) {
-                        $userPass = $envMap[$passKey]
-                        $fileRealmLines += (Get-FileRealmLine -UserName $userName -Password $userPass)
-                        $fileRealmUsers += $userName
+        foreach ($key in @($envMap.Keys)) {
+            if ($key -like '*_ES_USER') {
+                $userName = $envMap[$key]
+                $passKey = $key -replace '_ES_USER$', '_ES_PASS'
+                $rolesKey = $key -replace '_ES_USER$', '_ES_ROLES'
+                if ($envMap.ContainsKey($passKey)) {
+                    $secretName = "$(ConvertTo-SecretName $userName)-basic-auth"
+                    $rolesValue = $null
+                    if ($envMap.ContainsKey($rolesKey)) {
+                        $rolesValue = $envMap[$rolesKey]
                     }
+                    Write-BasicAuthSecret -SecretName $secretName -UserName $userName -Password $envMap[$passKey] -CertPath $certPath -UseCert:$useCert -Roles $rolesValue
+                } else {
+                    Write-Warning "$passKey not found for user '$userName'. Skipping."
                 }
-            }
-
-            $usersContent = ($fileRealmLines | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) -join "`n"
-            $rolesContent = "superuser:" + ($fileRealmUsers -join ',')
-
-            Write-Output "Sealing '$envFile' as '$fileRealmSecretName' -> $fileRealmOutFile"
-
-            try {
-                [System.IO.File]::WriteAllText($fileRealmUsersFile, $usersContent, [System.Text.UTF8Encoding]::new($false))
-                [System.IO.File]::WriteAllText($fileRealmRolesFile, $rolesContent, [System.Text.UTF8Encoding]::new($false))
-
-                $kubectlArgs = @(
-                    'create','secret','generic',$fileRealmSecretName,
-                    "--from-file=users=$fileRealmUsersFile",
-                    "--from-file=users_roles=$fileRealmRolesFile",
-                    "--namespace=$Namespace",
-                    '--dry-run=client','-o','yaml'
-                )
-                Invoke-Checked -FilePath kubectl -Arguments $kubectlArgs | Set-Content -Path $fileRealmTemp -Encoding utf8
-
-                $sealArgs = @('--format','yaml','--scope','cluster-wide')
-                if ($useCert) {
-                    $sealArgs += @('--cert',$certPath)
-                }
-
-                Get-Content -Path $fileRealmTemp -Raw | & kubeseal @sealArgs | Set-Content -Path $fileRealmSealedTemp -Encoding utf8
-                if ($LASTEXITCODE -ne 0) {
-                    throw "kubeseal failed for $envFile (file realm)"
-                }
-
-                # Remove explicit namespace lines so kustomize can inject dev/prod namespaces
-                Get-Content -Path $fileRealmSealedTemp | Where-Object { $_ -notmatch '^\s*namespace:\s*' } |
-                    Set-Content -Path $fileRealmOutFile -Encoding utf8
-
-                Write-Output "Wrote $fileRealmOutFile"
-            } catch {
-                Write-Error "Failed sealing ${envFile} (file realm): $($_)"
-            } finally {
-                Remove-Item -Path $fileRealmUsersFile -ErrorAction SilentlyContinue
-                Remove-Item -Path $fileRealmRolesFile -ErrorAction SilentlyContinue
-                Remove-Item -Path $fileRealmTemp -ErrorAction SilentlyContinue
-                Remove-Item -Path $fileRealmSealedTemp -ErrorAction SilentlyContinue
             }
         }
     }
