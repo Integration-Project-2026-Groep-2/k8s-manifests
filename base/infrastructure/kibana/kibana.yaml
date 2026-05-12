@@ -23,11 +23,11 @@ spec:
         - name: kibana
           resources:
             requests:
-              memory: "2Gi"
-              cpu: "1"
+              memory: "512Mi"
+              cpu: "500m"
             limits:
-              memory: "2Gi"
-              cpu: "2"
+              memory: "1Gi"
+              cpu: "1"
           env:
             - name: KIBANA_USERNAME
               valueFrom:
