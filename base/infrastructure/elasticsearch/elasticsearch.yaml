@@ -21,7 +21,7 @@ spec:
             - name: elasticsearch
               resources:
                 requests:
-                  memory: 1Gi
+                  memory: 2Gi
                   cpu: 500m
                 limits:
                   memory: 2Gi
@@ -33,6 +33,8 @@ spec:
                     secretKeyRef:
                       name: elasticsearch-secret
                       key: PORT_ELASTICSEARCH
+                - name: ES_JAVA_OPTS
+                  value: "-Xms2g -Xmx2g"  # Set JVM heap size to 2Gi for resource efficiency
       volumeClaimTemplates:
         - metadata:
             name: elasticsearch-data
