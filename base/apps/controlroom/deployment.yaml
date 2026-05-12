@@ -22,6 +22,7 @@ spec:
       containers:
         - name: controlroom
           image: ghcr.io/integration-project-2026-groep-2/controlroom:latest-dev
+          imagePullPolicy: Always
           env:
             - name: RABBITMQ_USER
               valueFrom:
