@@ -92,6 +92,10 @@ emit_basic_auth_secret() {
   local temp_file="$sealed_dir/temp-${temp_name}.yaml"
   local out_file="$sealed_dir/${secret_name}-sealedsecret.yaml"
 
+  # Strip any carriage returns (CR) that may be present from CRLF files
+  username="${username//$'\r'/}"
+  password="${password//$'\r'/}"
+
   echo "Sealing basic-auth user '$username' -> $out_file"
 
   if [[ -n "$roles" ]]; then
@@ -207,6 +211,9 @@ for env_file in "${env_files[@]}"; do
   if [[ "$name" == "elasticsearch" ]]; then
     if kibana_username=$(get_env_value "$env_file" "KIBANA_USERNAME" 2>/dev/null); then
       if kibana_password=$(get_env_value "$env_file" "KIBANA_PASSWORD" 2>/dev/null); then
+        # Remove any stray CR characters from values read from Windows-style files
+        kibana_username="${kibana_username//$'\r'/}"
+        kibana_password="${kibana_password//$'\r'/}"
         emit_basic_auth_secret "kibana-system-basic-auth" "$kibana_username" "$kibana_password"
       else
         echo "Warning: KIBANA_PASSWORD not found in $env_file. Skipping kibana-system-basic-auth." >&2
@@ -220,6 +227,8 @@ for env_file in "${env_files[@]}"; do
       if [[ "$key" == *_ES_USER ]]; then
         prefix="${key%_ES_USER}"
         user_name="${value//[[:space:]]/}"
+        # Remove CR if the env file is CRLF-terminated
+        user_name="${user_name//$'\r'/}"
         pass_key="${prefix}_ES_PASS"
         roles_key="${prefix}_ES_ROLES"
         user_secret_name="$(sanitize_secret_name "$user_name")-basic-auth"
@@ -228,6 +237,8 @@ for env_file in "${env_files[@]}"; do
           echo "Warning: $pass_key not found for user '$user_name'. Skipping." >&2
           continue
         fi
+
+        user_pass="${user_pass//$'\r'/}"
 
         if user_roles_raw=$(get_env_value "$env_file" "$roles_key" 2>/dev/null); then
           user_roles="${user_roles_raw//[[:space:]]/}"

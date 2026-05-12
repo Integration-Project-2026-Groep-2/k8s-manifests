@@ -78,6 +78,10 @@ function Write-BasicAuthSecret {
     $outFile = Join-Path $sealedDir "${SecretName}-sealedsecret.yaml"
 
     Write-Output "Sealing basic-auth user '$UserName' -> $outFile"
+    # Ensure no carriage returns remain on values (from CRLF env files)
+    if ($UserName) { $UserName = $UserName.Trim() -replace "`r", "" }
+    if ($Password) { $Password = $Password.Trim() -replace "`r", "" }
+    if ($Roles) { $Roles = $Roles.Trim() -replace "`r", "" }
 
     $kubectlArgs = @(
         'create', 'secret', 'generic', $SecretName,
@@ -270,6 +274,8 @@ foreach ($env in $envFiles) {
         foreach ($key in @($envMap.Keys)) {
             if ($key -like '*_ES_USER') {
                 $userName = $envMap[$key]
+                # Remove stray CR that may have been read from the file
+                if ($userName) { $userName = $userName.Trim() -replace "`r", "" }
                 $passKey = $key -replace '_ES_USER$', '_ES_PASS'
                 $rolesKey = $key -replace '_ES_USER$', '_ES_ROLES'
                 if ($envMap.ContainsKey($passKey)) {
