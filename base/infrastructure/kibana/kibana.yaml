@@ -17,6 +17,10 @@ spec:
           path: xpack.encryptedSavedObjects.encryptionKey
   config:
     xpack.encryptedSavedObjects.encryptionKey: ${xpack.encryptedSavedObjects.encryptionKey}
+  http:
+    tls:
+      selfSignedCertificate:
+        disabled: true
   podTemplate:
     spec:
       containers:
