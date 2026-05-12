@@ -232,7 +232,7 @@ for env_file in "${env_files[@]}"; do
         if user_roles_raw=$(get_env_value "$env_file" "$roles_key" 2>/dev/null); then
           user_roles="${user_roles_raw//[[:space:]]/}"
         else
-          user_roles=""
+          user_roles="superuser"
         fi
 
         emit_basic_auth_secret "$user_secret_name" "$user_name" "$user_pass" "$user_roles"

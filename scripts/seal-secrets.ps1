@@ -274,7 +274,7 @@ foreach ($env in $envFiles) {
                 $rolesKey = $key -replace '_ES_USER$', '_ES_ROLES'
                 if ($envMap.ContainsKey($passKey)) {
                     $secretName = "$(ConvertTo-SecretName $userName)-basic-auth"
-                    $rolesValue = $null
+                    $rolesValue = 'superuser'
                     if ($envMap.ContainsKey($rolesKey)) {
                         $rolesValue = $envMap[$rolesKey]
                     }
