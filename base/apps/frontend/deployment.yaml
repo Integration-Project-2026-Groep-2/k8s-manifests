@@ -112,13 +112,10 @@ spec:
       labels:
         app: frontend
     spec:
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 33   # www-data
-        fsGroup: 33
       containers:
         - name: frontend
           image: ghcr.io/integration-project-2026-groep-2/frontend:latest-dev
+          imagePullPolicy: Always
           ports:
             - containerPort: 80
           env:
