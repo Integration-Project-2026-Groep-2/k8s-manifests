@@ -24,7 +24,7 @@ spec:
                   memory: 1Gi
                   cpu: 250m
                 limits:
-                  memory: 1Gi
+                  memory: 2Gi
                   cpu: 500m
               # Expose ports from SealedSecret for app consumers
               env:
@@ -33,8 +33,6 @@ spec:
                     secretKeyRef:
                       name: elasticsearch-secret
                       key: PORT_ELASTICSEARCH
-                - name: ES_JAVA_OPTS
-                  value: "-Xms512m -Xmx512m"  # Set JVM heap size to 512Mi for resource efficiency
       volumeClaimTemplates:
         - metadata:
             name: elasticsearch-data
