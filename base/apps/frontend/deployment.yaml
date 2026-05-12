@@ -122,6 +122,8 @@ spec:
           ports:
             - containerPort: 80
           env:
+            - name: PATH
+              value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/drupal/vendor/bin
             - name: APACHE_SERVER_NAME
               value: "frontend"
             - name: DRUPAL_DB_HOST
@@ -175,17 +177,12 @@ spec:
           volumeMounts:
             - name: drupal-profiles
               mountPath: /var/www/html/profiles
-            - name: drupal-themes
-              mountPath: /var/www/html/themes
             - name: drupal-sites
               mountPath: /var/www/html/sites
       volumes:
         - name: drupal-profiles
           persistentVolumeClaim:
             claimName: drupal-profiles
-        - name: drupal-themes
-          persistentVolumeClaim:
-            claimName: drupal-themes
         - name: drupal-sites
           persistentVolumeClaim:
             claimName: drupal-sites
