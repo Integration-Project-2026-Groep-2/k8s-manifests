@@ -29,6 +29,8 @@ spec:
               value: facturatie-db
             - name: RABBITMQ_HOST
               value: rabbitmq
+            - name: RABBITMQ_PORT
+              value: "5672"
             - name: RABBITMQ_USER
               valueFrom:
                 secretKeyRef:
