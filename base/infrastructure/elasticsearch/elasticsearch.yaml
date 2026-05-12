@@ -34,7 +34,7 @@ spec:
                       name: elasticsearch-secret
                       key: PORT_ELASTICSEARCH
                 - name: ES_JAVA_OPTS
-                  value: "-Xms512m -Xmx512m"  # Set JVM heap size to 512Mi for resource efficiency
+                  value: "-Xms1g -Xmx1g"  # Set JVM heap size to 1Gi for resource efficiency
       volumeClaimTemplates:
         - metadata:
             name: elasticsearch-data
