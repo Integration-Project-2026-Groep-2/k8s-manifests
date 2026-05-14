@@ -177,6 +177,56 @@ for env_file in "${env_files[@]}"; do
 
   echo "Sealing '$env_file' as '$secret_name' -> $out_file"
 
+  if [[ "$file_name" == .env.htpasswd-* ]]; then
+    htpasswd_line=""
+    while IFS='=' read -r key value; do
+      key="${key//[[:space:]]/}"
+      [[ -z "$key" || "$key" == \#* ]] && continue
+      htpasswd_line="$key=$value"
+      break
+    done < "$env_file"
+
+    if [[ -z "$htpasswd_line" ]]; then
+      echo "Warning: no username=password entry found in $env_file" >&2
+      continue
+    fi
+
+    username="${htpasswd_line%%=*}"
+    password="${htpasswd_line#*=}"
+    username="${username//$'\r'/}"
+    password="${password//$'\r'/}"
+
+    if [[ "$username" == "auth" ]]; then
+      b64="$password"
+    else
+      if command -v htpasswd >/dev/null 2>&1; then
+        htout=$(htpasswd -bn "$username" "$password" | tr -d '\n')
+      elif command -v openssl >/dev/null 2>&1; then
+        htout="$username:$(openssl passwd -apr1 "$password")"
+      else
+        echo "Warning: neither htpasswd nor openssl found; writing plain user:pass for $env_file" >&2
+        htout="$username:$password"
+      fi
+
+      b64=$(printf '%s' "$htout" | base64 | tr -d '\n')
+    fi
+
+    cat > "$temp_file" <<EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: $secret_name
+type: Opaque
+data:
+  auth: $b64
+EOF
+
+    seal_temp_secret "$temp_file" "$out_file" "$safe_temp_name"
+    echo "Wrote $out_file"
+    rm -f "$temp_file"
+    continue
+  fi
+
   cert_file="$gateway_secrets_dir/${name}.crt"
   key_file="$gateway_secrets_dir/${name}.key"
   if [[ ! -f "$cert_file" || ! -f "$key_file" ]]; then

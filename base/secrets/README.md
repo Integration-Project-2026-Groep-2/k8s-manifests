@@ -58,6 +58,12 @@ The Elasticsearch `.env` file is split into two kinds of secrets:
 
 The Elasticsearch CR references these basic-auth secrets through `spec.auth.fileRealm` so ECK can aggregate them automatically.
 
+## Htpasswd secrets
+
+Files named `.env.htpasswd-*` should contain a single `username=password` entry.
+The seal scripts convert that pair into the `auth` field expected by ingress htpasswd auth.
+For compatibility, legacy `auth=<base64>` files are still accepted.
+
 ## Adding a new service
 
 1. Create `.env.NEWSERVICE` file with required variables

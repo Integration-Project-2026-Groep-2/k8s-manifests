@@ -205,6 +205,57 @@ foreach ($env in $envFiles) {
 
     Write-Output "Sealing '$envFile' as '$targetSecretName' -> $outFile"
 
+    if ($fileName -like '.env.htpasswd-*') {
+        $entry = $null
+        foreach ($line in ($envRaw -split "`r?`n")) {
+            if ($line -match '^[ \t]*([^=\s#][^=]*?)\s*=\s*(.+)$') {
+                $entry = @($matches[1].Trim(), $matches[2].Trim())
+                break
+            }
+        }
+
+        if (-not $entry) {
+            Write-Warning "No username=password entry found in $envFile"
+            continue
+        }
+
+        $username = $entry[0] -replace "`r", ""
+        $password = $entry[1] -replace "`r", ""
+
+        if ($username -eq 'auth') {
+            $b64 = $password
+        } else {
+            if (Get-Command htpasswd -ErrorAction SilentlyContinue) {
+                $htout = & htpasswd -bn $username $password
+            } elseif (Get-Command openssl -ErrorAction SilentlyContinue) {
+                $hash = & openssl passwd -apr1 $password
+                $htout = "$username:$hash"
+            } else {
+                Write-Warning "Neither htpasswd nor openssl found; using plain user:pass for $envFile"
+                $htout = "$username:$password"
+            }
+
+            $htout = ($htout -replace "`n", "" -replace "`r", "")
+            $b64 = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($htout))
+        }
+
+        $secretYaml = @"
+apiVersion: v1
+kind: Secret
+metadata:
+  name: $targetSecretName
+type: Opaque
+data:
+  auth: $b64
+"@
+
+        $secretYaml | Set-Content -Path $tempFile -Encoding utf8
+        Invoke-SealTempSecret -TempFile $tempFile -OutFile $outFile -CertPath $certPath -UseCert:$useCert -TempPrefix $safeTempName
+        Write-Output "Wrote $outFile"
+        Remove-Item -Path $tempFile -ErrorAction SilentlyContinue
+        continue
+    }
+
     try {
         # Prefer TLS files stored under gateway/secrets (cluster gateway certs)
         $gatewaySecretsDir = Join-Path $repoRoot "gateway\secrets"
