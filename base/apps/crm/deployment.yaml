@@ -35,6 +35,18 @@ spec:
                   key: CRM_RABBITMQ_PASS
             - name: RABBITMQ_URL
               value: "amqp://$(CRM_RABBITMQ_USER):$(CRM_RABBITMQ_PASS)@rabbitmq:5672/"
+            - name: HEARTBEAT_INTERVAL_SECONDS
+              value: "1"
+            - name: SYSTEM_NAME
+              value: CRM
+            - name: POLLING_INTERVAL_SECONDS
+              value: "60"
+            - name: POLLING_STATE_PATH
+              value: /tmp/polling_checkpoint.json
+            - name: LOG_SERVICE_NAME
+              value: crm
+            - name: LOG_RABBITMQ_LEVEL
+              value: INFO
             - name: SALESFORCE_USERNAME
               valueFrom:
                 secretKeyRef:
