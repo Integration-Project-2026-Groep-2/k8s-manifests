@@ -1,0 +1,10 @@
+apiVersion: gateway.nginx.org/v1alpha1
+kind: AuthenticationFilter
+metadata:
+  name: kassa-auth
+spec:
+  type: Basic
+  basic:
+    secretRef:
+      name: htpasswd-kassa-secret
+    realm: "Restricted htpasswd-kassa-secret"

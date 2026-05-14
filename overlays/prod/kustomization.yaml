@@ -5,6 +5,7 @@ kind: Kustomization
 resources:
   - ../../base          # root kustomization (apps, gateway, infrastructure, …)
   - httproute.yaml  # prod-specific routes
+  - filters/        # prod-specific filters (e.g. auth)
 
 # ── Namespace override ────────────────────────────────────────────────────────
 namespace: integration-project-2026-groep-2-prod

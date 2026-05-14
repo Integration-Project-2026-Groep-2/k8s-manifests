@@ -1,0 +1,10 @@
+apiVersion: gateway.nginx.org/v1alpha1
+kind: AuthenticationFilter
+metadata:
+  name: facturatie-auth
+spec:
+  type: Basic
+  basic:
+    secretRef:
+      name: htpasswd-facturatie-secret
+    realm: "Restricted htpasswd-facturatie-secret"

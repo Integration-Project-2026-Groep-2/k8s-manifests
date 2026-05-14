@@ -1,0 +1,10 @@
+apiVersion: gateway.nginx.org/v1alpha1
+kind: AuthenticationFilter
+metadata:
+  name: mailing-auth
+spec:
+  type: Basic
+  basic:
+    secretRef:
+      name: htpasswd-mailing-secret
+    realm: "Restricted htpasswd-mailing-secret"
