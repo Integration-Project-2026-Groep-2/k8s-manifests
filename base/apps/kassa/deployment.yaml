@@ -131,7 +131,7 @@ spec:
                 secretKeyRef:
                   name: kassa-secret
                   key: ODOO_URL
-            - name: ODOO_DATABASE
+            - name: ODOO_DB
               valueFrom:
                 secretKeyRef:
                   name: kassa-secret
