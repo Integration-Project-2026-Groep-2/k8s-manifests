@@ -15,6 +15,8 @@ resources:
   - apps/mailing/deployment.yaml
   - apps/mailing/configmap.yaml
   - apps/planning/deployment.yaml
+  - apps/mcp-master/deployment.yaml
+  - apps/iot-badge-scanner/deployment.yaml
   - network-policies/default-deny.yaml
   - network-policies/policies.yaml
   - secrets
