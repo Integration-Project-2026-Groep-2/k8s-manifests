@@ -161,3 +161,21 @@ spec:
     - backendRefs:
         - name: planning
           port: 80
+
+---
+# ─── HTTPRoute: iot-badge-scanner ─────────────────────────────────────────────────────────
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: iot-badge-scanner-route
+spec:
+  parentRefs:
+    - name: main-gateway
+      namespace: nginx-gateway
+      sectionName: https
+  hostnames:
+    - "iot-badge-scanner.integration-project-2026-groep-2.my.be"
+  rules:
+    - backendRefs:
+        - name: iot-badge-scanner
+          port: 30071
