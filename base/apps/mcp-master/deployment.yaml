@@ -68,3 +68,19 @@ spec:
             limits:
               cpu: "500m"
               memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mcp-master
+  namespace: integration-project-2026-groep-2
+  labels:
+    app: mcp-master
+spec:
+  type: ClusterIP
+  selector:
+    app: mcp-master
+  ports:
+    - name: mcp-master-port
+      port: 5555
+      targetPort: 5555
