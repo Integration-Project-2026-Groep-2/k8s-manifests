@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: iot-badge-scanner
+  namespace: integration-project-2026-groep-2
+  labels:
+    app: iot-badge-scanner
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"  # Sync after databases and infrastructure
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: iot-badge-scanner
+  template:
+    metadata:
+      labels:
+        rabbitmq-client: "true"
+        app: iot-badge-scanner
+    spec:
+      securityContext: {}
+      containers:
+        - name: iot-badge-scanner
+          image: ghcr.io/integration-project-2026-groep-2/iot-badge-scanner:latest-dev
+          env:
+            - name: RABBITMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: IOT_BADGE_SCANNER_RABBITMQ_USER
+            - name: RABBITMQ_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: IOT_BADGE_SCANNER_RABBITMQ_PASS
+            - name: RABBITMQ_URL
+              value: "amqp://$(RABBITMQ_USER):$(RABBITMQ_PASS)@rabbitmq:5672/"
+            - name: RABBITMQ_HOST
+              value: "rabbitmq"
+            - name: EXTERNAL_PORT
+              value: "30071"
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
