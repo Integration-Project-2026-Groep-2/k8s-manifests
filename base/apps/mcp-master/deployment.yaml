@@ -23,11 +23,11 @@ spec:
         - name: mcp-master
           image: ghcr.io/integration-project-2026-groep-2/mcp-master:latest-dev
           env:
-            - name: MCP_BASE
+            - name: MCP_BASE_URL
               valueFrom:
                 secretKeyRef:
                   name: mcp-master-secret
-                  key: MCP_BASE
+                  key: MCP_BASE_URL
             - name: MCP_PORT
               valueFrom:
                 secretKeyRef:
