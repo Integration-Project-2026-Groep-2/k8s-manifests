@@ -156,6 +156,8 @@ spec:
               value: kassa-db
             - name: DB_PORT
               value: "5432"
+            - name: DB_NAME
+              value: kassa-db
             - name: POSTGRES_DB
               value: kassa-db
             - name: USER
