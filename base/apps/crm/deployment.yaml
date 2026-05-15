@@ -44,7 +44,7 @@ spec:
             - name: POLLING_STATE_PATH
               value: /tmp/polling_checkpoint.json
             - name: LOG_SERVICE_NAME
-              value: crm
+              value: CRM
             - name: LOG_RABBITMQ_LEVEL
               value: INFO
             - name: SALESFORCE_USERNAME
