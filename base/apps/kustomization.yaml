@@ -1,0 +1,13 @@
+namespace: integration-project-2026-groep-2
+
+resources:
+  - facturatie/deployment.yaml
+  - controlroom/deployment.yaml
+  - crm/deployment.yaml
+  - frontend/deployment.yaml
+  - kassa/deployment.yaml
+  - mailing/deployment.yaml
+  - mailing/configmap.yaml
+  - planning/deployment.yaml
+  - mcp-master/deployment.yaml
+  - iot-badge-scanner/deployment.yaml

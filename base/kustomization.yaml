@@ -7,16 +7,7 @@ namespace: integration-project-2026-groep-2
 resources:
   - namespace.yaml
   - infrastructure/
-  - apps/facturatie/deployment.yaml
-  - apps/controlroom/deployment.yaml
-  - apps/crm/deployment.yaml
-  - apps/frontend/deployment.yaml
-  - apps/kassa/deployment.yaml
-  - apps/mailing/deployment.yaml
-  - apps/mailing/configmap.yaml
-  - apps/planning/deployment.yaml
-  - apps/mcp-master/deployment.yaml
-  - apps/iot-badge-scanner/deployment.yaml
+  - apps/
   - network-policies/default-deny.yaml
   - network-policies/policies.yaml
   - secrets
