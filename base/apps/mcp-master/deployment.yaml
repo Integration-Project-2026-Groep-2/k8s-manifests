@@ -26,12 +26,12 @@ spec:
             - name: MCP_BASE
               valueFrom:
                 secretKeyRef:
-                  name: mcp-secret
+                  name: mcp-master-secret
                   key: MCP_BASE
             - name: MCP_PORT
               valueFrom:
                 secretKeyRef:
-                  name: mcp-secret
+                  name: mcp-master-secret
                   key: MCP_PORT
             - name: MCP_RABBITMQ_USER
               valueFrom:
@@ -50,7 +50,7 @@ spec:
             - name: ANTHROPIC_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: mcp-secret
+                  name: mcp-master-secret
                   key: ANTHROPIC_API_KEY
             - name: CHAT_ALLOWED_ORIGINS
               value: "https://www.integration-project-2026-groep-2.my.be"
@@ -59,7 +59,7 @@ spec:
             - name: CHAT_JWT_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: mcp-secret
+                  name: mcp-master-secret
                   key: CHAT_JWT_SECRET
           resources:
             requests:
