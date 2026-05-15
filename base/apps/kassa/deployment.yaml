@@ -126,7 +126,7 @@ spec:
             - name: SYSTEM_NAME
               value: Kassa
             - name: PYTHONPATH
-              value: "/usr/lib/python3/dist-packages"
+              value: "/app/src"
             - name: ODOO_PORT
               value: "8069"
             - name: ODOO_URL
