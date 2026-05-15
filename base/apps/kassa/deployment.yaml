@@ -124,7 +124,7 @@ spec:
             - "-c"
             - "/etc/odoo.conf"
             - "-d"
-            - "kassa-db"
+            - '"kassa-db"'
           ports:
             - containerPort: 8069
           env:
