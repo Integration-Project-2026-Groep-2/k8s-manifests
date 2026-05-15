@@ -120,6 +120,11 @@ spec:
         - name: kassa
           image: ghcr.io/integration-project-2026-groep-2/kassa:latest-dev
           imagePullPolicy: Always
+          args: 
+            - "-c"
+            - "/etc/odoo.conf"
+            - "-d"
+            - "kassa-db"
           ports:
             - containerPort: 8069
           env:
