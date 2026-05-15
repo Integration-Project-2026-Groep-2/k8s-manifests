@@ -119,11 +119,14 @@ spec:
       containers:
         - name: kassa
           image: ghcr.io/integration-project-2026-groep-2/kassa:latest-dev
+          imagePullPolicy: Always
           ports:
             - containerPort: 8069
           env:
             - name: SYSTEM_NAME
               value: Kassa
+            - name: PYTHONPATH
+              value: "/usr/lib/python3/dist-packages"
             - name: ODOO_PORT
               value: "8069"
             - name: ODOO_URL
@@ -205,8 +208,6 @@ spec:
               value: "30"
             - name: LOG_LEVEL
               value: INFO
-            - name: PYTHONPATH
-              value: /app/src
           resources:
             requests:
               cpu: "200m"
