@@ -310,7 +310,7 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      app: mcp-master
+      app: controlroom
   policyTypes:
     - Ingress
   ingress:
@@ -320,3 +320,4 @@ spec:
               app: mcp-master
       ports:
         - port: 5555
+          protocol: TCP
