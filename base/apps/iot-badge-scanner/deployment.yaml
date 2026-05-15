@@ -39,6 +39,20 @@ spec:
               value: "rabbitmq"
             - name: EXTERNAL_PORT
               value: "30071"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 30071
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 30071
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
           resources:
             requests:
               cpu: "100m"
