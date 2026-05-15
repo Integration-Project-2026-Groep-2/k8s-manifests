@@ -134,6 +134,14 @@ spec:
               value: "/app/src"
             - name: ODOO_PORT
               value: "8069"
+            - name: ODOO_DB_FILTER
+              value: "^kassa-db$"
+            - name: ODOO_HTTP_PORT
+              value: "8069"
+            - name: ENABLE_HEARTBEAT_IN_ODOO_IMAGE
+              value: "true"
+            - name: ENABLE_RECEIVER_IN_ODOO_IMAGE
+              value: "true"
             - name: ODOO_URL
               valueFrom:
                 secretKeyRef:
@@ -205,6 +213,8 @@ spec:
                 secretKeyRef:
                   name: rabbitmq-secret
                   key: RABBITMQ_VHOST
+            - name: HEARTBEAT_ENABLED
+              value: "true"
             - name: HEARTBEAT_INTERVAL_SECONDS
               value: "1"
             - name: HEARTBEAT_EXCHANGE
