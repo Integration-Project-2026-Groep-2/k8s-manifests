@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-master
+  namespace: integration-project-2026-groep-2
+  labels:
+    app: mcp-master
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"  # Sync after databases and infrastructure
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mcp-master
+  template:
+    metadata:
+      labels:
+        rabbitmq-client: "true"
+        app: mcp-master
+    spec:
+      securityContext: {}
+      containers:
+        - name: mcp-master
+          image: ghcr.io/integration-project-2026-groep-2/mcp-master:latest-dev
+          env:
+            - name: MCP_BASE
+              valueFrom:
+                secretKeyRef:
+                  name: mcp-secret
+                  key: MCP_BASE
+            - name: MCP_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: mcp-secret
+                  key: MCP_PORT
+            - name: MCP_RABBITMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: MCP_RABBITMQ_USER
+            - name: MCP_RABBITMQ_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: MCP_RABBITMQ_PASS
+            - name: RABBITMQ_URL
+              value: "amqp://$(MCP_RABBITMQ_USER):$(MCP_RABBITMQ_PASS)@rabbitmq:5672/"
+            - name: RABBITMQ_EXCHANGE
+              value: "ai.events"
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: mcp-secret
+                  key: ANTHROPIC_API_KEY
+            - name: CHAT_ALLOWED_ORIGINS
+              value: "https://www.integration-project-2026-groep-2.my.be"
+            - name: RUST_LOG
+              value: "info,mcp_master=info"
+            - name: CHAT_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: mcp-secret
+                  key: CHAT_JWT_SECRET
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
