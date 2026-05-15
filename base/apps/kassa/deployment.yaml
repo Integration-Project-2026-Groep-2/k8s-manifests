@@ -205,6 +205,8 @@ spec:
               value: "30"
             - name: LOG_LEVEL
               value: INFO
+            - name: PYTHONPATH
+              value: /app/src
           resources:
             requests:
               cpu: "200m"
