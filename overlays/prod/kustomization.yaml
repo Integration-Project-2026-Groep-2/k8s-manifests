@@ -19,12 +19,25 @@ commonAnnotations:
   managed-by: argocd
 
 # ── Image tags ────────────────────────────────────────────────────────────────
-# Pin every service to a specific stable tag in prod.
-# Add one entry per service; never use "latest" in production.
-#
-# images:
-#   - name: ghcr.io/integration-project-2026-groep-2/my-service
-#     newTag: "1.2.3"
+images:
+  - name: ghcr.io/integration-project-2026-groep-2/controlroom
+    newTag: 1.0.0
+  - name: ghcr.io/integration-project-2026-groep-2/frontend
+    newTag: 1.0.0
+  - name: ghcr.io/integration-project-2026-groep-2/facturatie
+    newTag: 1.0.0
+  - name: ghcr.io/integration-project-2026-groep-2/planning
+    newTag: 1.0.0
+  - name: ghcr.io/integration-project-2026-groep-2/crm
+    newTag: 1.0.0
+  - name: ghcr.io/integration-project-2026-groep-2/kassa
+    newTag: 1.0.0
+  - name: ghcr.io/integration-project-2026-groep-2/mailing
+    newTag: 1.0.0
+  - name: ghcr.io/integration-project-2026-groep-2/mcp-master
+    newTag: 1.0.0
+  - name: ghcr.io/integration-project-2026-groep-2/iot-badge-scanner
+    newTag: 1.0.0
 
 # ── Patches ───────────────────────────────────────────────────────────────────
 patches:
