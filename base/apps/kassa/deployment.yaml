@@ -119,7 +119,6 @@ spec:
       containers:
         - name: kassa
           image: ghcr.io/integration-project-2026-groep-2/kassa:latest-dev
-          imagePullPolicy: Always
           ports:
             - containerPort: 8069
           env:
