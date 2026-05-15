@@ -34,6 +34,10 @@ images:
     newTag: latest-dev
   - name: ghcr.io/integration-project-2026-groep-2/mailing
     newTag: latest-dev
+  - name: ghcr.io/integration-project-2026-groep-2/mcp-master
+    newTag: latest-dev
+  - name: ghcr.io/integration-project-2026-groep-2/iot-badge-scanner
+    newTag: latest-dev
 
 # ── Patches ───────────────────────────────────────────────────────────────────
 patches:
