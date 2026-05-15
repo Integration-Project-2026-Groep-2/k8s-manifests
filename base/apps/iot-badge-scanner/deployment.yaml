@@ -46,3 +46,19 @@ spec:
             limits:
               cpu: "500m"
               memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: iot-badge-scanner
+  namespace: integration-project-2026-groep-2
+  labels:
+    app: iot-badge-scanner
+spec:
+  type: ClusterIP
+  selector:
+    app: iot-badge-scanner
+  ports:
+    - name: iot-badge-scanner
+      port: 30071
+      targetPort: 30071
